@@ -6,10 +6,10 @@ from mockfactory.desi import is_in_desi_footprint
 from cosmoprimo.fiducial import AbacusSummit
 from .box import BoxHOD
 from acm.data.paths import LRG_Abacus_DM
-
+from astropy.io import fits
 import logging
 import warnings
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+warnings.filterwarnings("ignore", category=np.exceptions.VisibleDeprecationWarning)
 
 #TODO : add docstrings !
 
@@ -60,7 +60,7 @@ class CutskyHOD:
         hod_dict = ball.run(hod_params, seed=seed, nthreads=nthreads)['LRG']
         pos = np.c_[hod_dict['X'], hod_dict['Y'], hod_dict['Z']]
         vel = np.c_[hod_dict['VX'], hod_dict['VY'], hod_dict['VZ']]
-        return pos, vel
+        return pos.astype(np.float32), vel.astype(np.float32)
 
     def setup_hod_debug(self, DM_DICT: dict = LRG_Abacus_DM['box']):
         """
@@ -83,7 +83,7 @@ class CutskyHOD:
         data = fitsio.read(data_fn)
         pos = np.c_[data['X'], data['Y'], data['Z']]
         vel = np.c_[data['VX'], data['VY'], data['VZ']]
-        return pos, vel
+        return pos.astype(np.float32), vel.astype(np.float32)
 
     def init_data(self):
         """
@@ -109,7 +109,7 @@ class CutskyHOD:
     def run(
             self, hod_params: dict, nthreads: int = 1, seed: float = 0, 
             generate_randoms: bool = False, replications: list = [-1, 0, 1],
-            alpha_randoms: int = 5, randoms_seed: float = 42,):
+            alpha_randoms: int = 5, randoms_seed: float = 42):
         data = self.init_data()
         randoms = self.init_randoms() if generate_randoms else None
 
@@ -122,13 +122,16 @@ class CutskyHOD:
                 pos_box, vel_box = self.sample_hod(ball, hod_params, nthreads=nthreads, seed=seed)
 
             # replicate the box along each axis to cover more volume
-            shifts = self.get_box_shifts(mappings=replications)  # shifts to translate particle positions
-            pos_rep, vel_rep, boxcenter_rep = self.get_box_replications(pos_box, vel_box, shifts=shifts,
-                                                                        boxcenter=self.boxcenter)
-            data_nbar = len(pos_box) / (self.boxsize_snapshot ** 3)
+            shifts = self.get_box_shifts(mappings=[-1, 0, 1])  # shifts to translate particle positions
+            target_nbar = self.get_target_nbar(zmin=zranges[0], zmax=zranges[1])
+            pos_min,pos_max = self.get_reference_borders(zranges,box_margin=300)
+            pos_rep, vel_rep = self.get_box_replications(pos_box, vel_box,
+                                                         pos_min, pos_max, target_nbar, shifts=shifts)
+            # data_nbar = len(pos_box) / (self.boxsize_snapshot ** 3)
+            data_nbar = target_nbar
             data_rep = mockfactory.BoxCatalog(data={'Position': pos_rep, 'Velocity': vel_rep},
                                               position='Position', velocity='Velocity',
-                                              boxsize=6000, boxcenter=0,)
+                                              boxsize=pos_max-pos_min, boxcenter=(pos_max+pos_min)/2,)
             data_rep = self.box_to_cutsky(box=data_rep, zmin=zranges[0], zmax=zranges[1], 
                                           zrsd=zsnap, radial_mask_norm=1/data_nbar, apply_rsd=True,
                                           apply_radial_mask=True, apply_footprint_mask=True)
@@ -138,8 +141,8 @@ class CutskyHOD:
             if generate_randoms:
                 self.logger.info('Generating randoms.')
                 nbar_randoms = data_nbar * alpha_randoms
-                randoms_rep =  mockfactory.RandomBoxCatalog(nbar=nbar_randoms, boxsize=6000,
-                                                            boxcenter=0, seed=randoms_seed)
+                randoms_rep =  mockfactory.RandomBoxCatalog(nbar=nbar_randoms, boxsize=pos_max-pos_min,
+                                                            boxcenter=(pos_max+pos_min)/2, seed=randoms_seed)
                 randoms_rep = self.box_to_cutsky(randoms_rep, zmin=zranges[0], zmax=zranges[1],
                                                  apply_rsd=False, apply_radial_mask=True,
                                                  radial_mask_norm=1/data_nbar,
@@ -176,7 +179,7 @@ class CutskyHOD:
                     shifts.append([self.boxsize_snapshot * np.array([i, j, k])])
         return shifts
 
-    def get_box_replications(self, position, velocity, boxcenter, shifts: list = None):
+    def get_box_replications(self, position, velocity, pos_min, pos_max, target_nbar, shifts: list = None):
         """
         Get the positions, velocities, and box centers of the replications of the simulations,
         obtained by applying the input shift values.
@@ -205,14 +208,13 @@ class CutskyHOD:
             shifts = self.get_box_shifts()
         new_pos = []
         new_vel = []
-        new_center = []
         for shift in shifts:
-            new_pos.append(position + shift)
-            new_vel.append(velocity)
-            new_center.append(boxcenter + shift)
+            temp_pos,temp_vel = self.get_pos_within_borders(position + shift,velocity,pos_min,pos_max,target_nbar)
+            new_pos.append(temp_pos)
+            new_vel.append(temp_vel)
         new_pos = np.concatenate(new_pos)
         new_vel = np.concatenate(new_vel)
-        return new_pos, new_vel, new_center
+        return new_pos, new_vel
 
     def box_to_cutsky(
             self, box, zmin: float, zmax: float, zrsd: float = None, 
@@ -222,7 +224,7 @@ class CutskyHOD:
         Convert a box catalog to a cutsky catalog by applying geometric cuts, RSD, and masks.
         """
         dist = self.cosmo.comoving_radial_distance((zmin + zmax) / 2)
-        cutsky = self.apply_geometric_cuts(box, box.boxsize[0], dist)
+        cutsky = self.apply_geometric_cuts(box,zmin,zmax)
         if apply_rsd: 
             cutsky = self.apply_rsd(cutsky, zrsd)
         cutsky = self._get_sky_positions(cutsky, apply_rsd)
@@ -233,12 +235,10 @@ class CutskyHOD:
             cutsky = self.apply_footprint_mask(cutsky)
         return cutsky
 
-    def apply_geometric_cuts(self, catalog, boxsize, dist):
+    def apply_geometric_cuts(self, catalog, zmin, zmax):
         self.logger.info('Applying geometric cuts.')
         # largest (RA, Dec) range we can achieve for a maximum distance of dist + boxsize / 2.
-        drange, rarange, decrange = mockfactory.box_to_cutsky(boxsize=boxsize, dmax=dist + boxsize / 2.)
-        rarange = np.array(rarange) + 192
-        decrange = np.array(decrange) + 35
+        drange, rarange, decrange = self.get_reference_skyrange((zmin,zmax),mock_dir=None)
         # returned isometry corresponds to a displacement of the box along the x-axis to match drange, then a rotation to match rarange and decrange
         isometry, mask_radial, mask_angular = catalog.isometry_for_cutsky(drange=drange, rarange=rarange, decrange=decrange)
         return catalog.cutsky_from_isometry(isometry, rdd=None)
@@ -286,7 +286,7 @@ class CutskyHOD:
         try:
             from regressis import DR9Footprint
         except ImportError:
-            if rank == 0: logger.info('Regressis not found, falling back to RA/Dec cuts')
+            if rank == 0: self.logger.info('Regressis not found, falling back to RA/Dec cuts')
 
         if DR9Footprint is None:
             mask = np.ones_like(ra, dtype='?')
@@ -316,3 +316,66 @@ class CutskyHOD:
             dr9_footprint = DR9Footprint(nside, mask_lmc=False, clear_south=False, mask_around_des=False, cut_desi=False, verbose=(rank == 0))
             convert_dict = {'N': 'north', 'DN': 'south_mid_ngc', 'N+SNGC': 'ngc', 'SNGC': 'south_mid_ngc', 'DS': 'south_mid_sgc', 'SSGC': 'south_mid_sgc', 'DES': 'des'}
             return pixels, dr9_footprint(convert_dict[region])[pixels]
+
+    def get_reference_borders(self,zranges,box_margin,mock_dir=None):
+
+        assert box_margin>0
+        
+        if mock_dir==None:
+            mock_dir  = '/global/cfs/cdirs/desi/survey/catalogs/Y1/mocks/SecondGenMocks/AbacusSummit_v4_1/'
+            mock_dir += 'altmtl0/mock0/LSScats/LRG_NGC_clustering.dat.fits'
+        hdul = fits.open(mock_dir) 
+        data  = hdul[1].data
+        hdul.close()
+        
+        zmin,zmax = zranges
+        chosen = np.logical_and(data['Z']<zmax,data['Z']>zmin)
+        dist = self.cosmo.comoving_radial_distance(data['Z'][chosen])
+        pos = mockfactory.sky_to_cartesian(dist,data['RA'][chosen],data['DEC'][chosen])
+        pos_min = np.min(pos,axis=0)
+        pos_max = np.max(pos,axis=0)
+        if box_margin>1:
+            return pos_min - box_margin, pos_max + box_margin
+        else:
+            return pos_min - box_margin*self.boxsize_snapshot, pos_max + box_margin*self.boxsize_snapshot
+
+    def get_reference_skyrange(self,zranges,mock_dir=None):
+
+        if mock_dir==None:
+            mock_dir  = '/global/cfs/cdirs/desi/survey/catalogs/Y1/mocks/SecondGenMocks/AbacusSummit_v4_1/'
+            mock_dir += 'altmtl0/mock0/LSScats/LRG_NGC_clustering.dat.fits'
+        hdul = fits.open(mock_dir) 
+        data  = hdul[1].data
+        hdul.close()
+        
+        zmin,zmax = zranges
+        chosen = np.logical_and(data['Z']<zmax,data['Z']>zmin)
+        RA = data['RA'][chosen]
+        DEC = data['DEC'][chosen]
+        Z = data['Z'][chosen]
+        dist = self.cosmo.comoving_radial_distance(data['Z'][chosen])
+        dist_min = np.min(dist,axis=0)
+        dist_max = np.max(dist,axis=0)
+        RA_min   = np.min(RA,axis=0)
+        RA_max   = np.max(RA,axis=0)
+        DEC_min  = np.min(DEC,axis=0)
+        DEC_max  = np.max(DEC,axis=0)
+        return (dist_min,dist_max),(RA_min,RA_max),(DEC_min,DEC_max)
+            
+    def get_target_nbar(self, zmin: float = 0., zmax: float = 6., nzbuff=1.1):
+        self.logger.info('Applying radial mask.')
+        nz_filename = '/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/LRG_NGC_nz.txt'
+        zbin_min, zbin_max, n_z = np.genfromtxt(nz_filename, usecols=(1, 2, 3)).T
+        chosen = np.logical_and(zbin_min>=zmin,zbin_max<=zmax)
+        return nzbuff*np.max(n_z[chosen])
+
+    def get_pos_within_borders(self,pos,vel,pos_min,pos_max,target_nbar):
+        target_ngal = int(target_nbar*self.boxsize_snapshot**3)
+        chosen = np.random.choice(len(pos),target_ngal,replace=False)
+        pos = pos[chosen]
+        vel = vel[chosen]
+        for i in range(3):
+            chosen = np.logical_and(pos[:,i]>pos_min[i],pos[:,i]<pos_max[i])
+            pos = pos[chosen]
+            vel = vel[chosen]
+        return pos,vel
