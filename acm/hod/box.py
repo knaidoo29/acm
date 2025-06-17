@@ -63,10 +63,10 @@ class BoxHOD:
         self.logger = logging.getLogger('AbacusHOD')
         self.cosmo_idx = cosmo_idx
         self.phase_idx = phase_idx
-        if sim_type not in ['base', 'small']:
-            raise ValueError('Invalid sim_type. Must be either "base" or "small".')
+        if sim_type not in ['base', 'small', 'png']:
+            raise ValueError('Invalid sim_type. Must be either "base", "small", or "png".')
         self.sim_type = sim_type
-        self.boxsize = 2000 if sim_type == 'base' else 500
+        self.boxsize = 2000 if sim_type in ['base', 'png'] else 500
         self.redshift = redshift
         if config_file is None:
             config_dir = os.path.dirname(os.path.abspath(__file__))
@@ -97,7 +97,10 @@ class BoxHOD:
         HOD_params = config['HOD_params']
         self.ball = abacus_hod.AbacusHOD(sim_params, HOD_params)
         self.ball.params['Lbox'] = self.boxsize
-        self.cosmo = AbacusSummit(self.cosmo_idx)
+        if self.cosmo_idx in [300, 301, 302, 303]:
+            self.cosmo = AbacusSummit(0)
+        else:
+            self.cosmo = AbacusSummit(self.cosmo_idx)
         self.az = 1 / (1 + self.redshift)
         self.hubble = 100 * self.cosmo.efunc(self.redshift)
         self.logger.info(f'Processing {self.abacus_simname()} at z = {self.redshift}')
@@ -129,6 +132,8 @@ class BoxHOD:
         str
             Simulation name, following the Abacus format.
         """
+        if self.sim_type == 'png':
+            return f'Abacus_{self.sim_type}base_c{self.cosmo_idx:03}_ph{self.phase_idx:03}'
         return f'AbacusSummit_{self.sim_type}_c{self.cosmo_idx:03}_ph{self.phase_idx:03}'
 
     def check_params(self, params):
@@ -165,6 +170,7 @@ class BoxHOD:
         seed = None, 
         save_fn: str = None, 
         add_rsd: bool = False,
+
         )-> dict:
         """
         Run the HOD model with the given parameters.
@@ -218,14 +224,12 @@ class BoxHOD:
                 1, tracer_density_mean * self.boxsize ** 3 / n_tracers
             )
         hod_dict = self.ball.run_hod(self.ball.tracers, self.ball.want_rsd, Nthread=nthreads, reseed=seed)
-        # positions_dict = self.get_positions(hod_dict, tracer)
-        self.format_catalog(hod_dict, save_fn, tracer, add_rsd)
+        hod_dict = self.format_catalog(hod_dict, tracer, add_rsd)
         return hod_dict
 
     def format_catalog(
         self, 
         hod_dict: dict, 
-        save_fn: str = False, 
         tracer: str = 'LRG', 
         add_rsd: bool = False):
         """
@@ -251,12 +255,24 @@ class BoxHOD:
         hod_dict[tracer] = {k.upper():v  for k, v in hod_dict[tracer].items()}
         if add_rsd:
             hod_dict = self._add_rsd(hod_dict, tracer)
-        if save_fn:
-            table = Table(hod_dict[tracer])
-            header = fits.Header({'N_cent': Ncent, 'gal_type': tracer, **self.ball.tracers[tracer]})
-            myfits = fits.BinTableHDU(data=table, header=header)
-            myfits.writeto(save_fn, overwrite=True)
-            self.logger.info(f'Saving {save_fn}.')
+        return hod_dict
+
+    def save_catalog(self, hod_dict: dict, save_fn: str):
+        """
+        Save the HOD catalog to a FITS file.
+
+        Parameters
+        ----------
+        hod_dict : dict
+            Dictionary containing the HOD catalog.
+        save_fn : str
+            Filename to save the catalog.
+        """
+        table = Table(hod_dict['LRG'])
+        header = fits.Header({'gal_type': 'LRG', **self.ball.tracers['LRG']})
+        myfits = fits.BinTableHDU(data=table, header=header)
+        myfits.writeto(save_fn, overwrite=True)
+        self.logger.info(f'Saving {save_fn}.')
 
     def param_mapping(self, hod_params: dict | list):
         """
