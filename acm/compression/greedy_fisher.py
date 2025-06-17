@@ -110,6 +110,32 @@ def get_individual_fisher_information(statistic, add_inverse_correction=True, ad
         return fisher_matrix
     return safe_log_determinant(fisher_matrix,)
 
+def build_block_diagonal_emulator_error(selected_bins, available_bin_idx, stat_str, 
+                                       emulator_error_matrices,):
+    """
+    Build block diagonal emulator error matrix for current configuration.
+    
+    Args:
+        selected_bins: dict of selected bins per statistic
+        available_bin_idx: the new bin index being considered for stat_str
+        stat_str: the statistic we're adding a bin to
+        emulator_error_matrices: precomputed full emulator error matrices
+    """
+    blocks = []
+    
+    for stat_name in selected_bins.keys():
+        if stat_name == stat_str:
+            current_bins = selected_bins[stat_name] + [available_bin_idx]
+        else:
+            current_bins = selected_bins[stat_name]
+        if len(current_bins) > 0:
+            full_matrix = emulator_error_matrices[stat_name]
+            submatrix = full_matrix[np.ix_(current_bins, current_bins)]
+            blocks.append(submatrix)
+    if len(blocks) == 0:
+        return np.array([[]])
+    return np.linalg.block_diag(*blocks)
+
 def precompute_derivatives_and_covariance_simulations(statistics,):
     precomputed = {
         'derivatives': {},
@@ -120,7 +146,9 @@ def precompute_derivatives_and_covariance_simulations(statistics,):
     for stat_str, statistic in statistics.items():
         precomputed['derivatives'][stat_str] = get_gradient(statistic,) 
         precomputed['covariance_simulations'][stat_str] = statistic.small_box_y
-        precomputed['emulator_error'][stat_str] = statistic.get_emulator_error()**2
+        #precomputed['emulator_error'][stat_str] = statistic.get_emulator_error()**2
+        precomputed['emulator_error_matrices'][stat_str] = statistic.get_emulator_error_matrix(method='std')
+
         precomputed['bin_counts'] = precomputed['derivatives'][stat_str].shape[1]
     return precomputed
 
@@ -138,6 +166,7 @@ def compute_precision_matrices(
         statistics,
         selected_bin_data, 
         available_bin_data, 
+        current_stat_str,
         selected_bin_emulator_error=None, 
         available_bin_emulator_error=None,
         add_emulator_error=False,
@@ -159,7 +188,7 @@ def compute_precision_matrices(
         correction = list(statistics.values())[0].get_covariance_correction(
             n_s=n_mocks,
             n_d=n_dim,
-            n_theta=list(statistics.values())[0].lhc_x.shape[-1],
+            n_theta=lis(statistics.values())[0].lhc_x.shape[-1],
             method='percival-fisher',
         )
     else:
@@ -172,9 +201,21 @@ def compute_precision_matrices(
         if add_emulator_error:
             #print('selected_bin_emulator_error = ', selected_bin_emulator_error.shape)
             #print('available_bin_emulator_error = ', available_bin_emulator_error[i].shape)
-            error = np.hstack((selected_bin_emulator_error, available_bin_emulator_error[i]))
+            #error = np.hstack((selected_bin_emulator_error, available_bin_emulator_error[i]))
             #print('error = ', error.shape)
-            covariance_matrix += np.diag(error)
+            #covariance_matrix += np.diag(error)
+            # Create temporary selected_bins for this configuration
+            temp_selected_bins = {stat: list(bins) for stat, bins in selected_bins.items()}
+            temp_selected_bins[current_stat_str] = temp_selected_bins[current_stat_str] + [bin_idx]
+            
+            emulator_cov = build_block_diagonal_emulator_error(
+                selected_bins, bin_idx, current_stat_str, 
+                precomputed['emulator_error_matrices'], None
+            )
+            
+            if emulator_cov.size > 0:
+                covariance_matrix += emulator_cov
+        
         precision_matrices[i] = safe_inverse(correction * covariance_matrix)
     return precision_matrices 
 
@@ -235,7 +276,7 @@ def greedy_bin_selection(
     selected_bin_data = np.zeros(
         (precomputed['covariance_simulations'][list(statistics.keys())[0]].shape[0], 0)
     )
-    selected_bin_emulator_error = np.zeros((0,))
+    selected_bin_emulator_error = np.zeros((0,0))
 
     # Track Fisher 
     current_fisher = float('-inf')

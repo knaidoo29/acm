@@ -157,7 +157,6 @@ class BaseObservable(ABC):
         estimation.
         """
         #TODO: Get rid of the outlier stuff after void measurements are fixed
-        outlier_indices = [127, 180, 344, 484, 588, 653, 1142, 1231, 1275, 1466, 1526, 1592,]
         fn = self.small_box_fname()
         small_box_y = np.load(fn, allow_pickle=True).item()['cov_y']
         coords = self.small_box_indices
@@ -172,7 +171,7 @@ class BaseObservable(ABC):
             data=small_box_y, dimensions=dimensions, coords=coords,
             select_filters=self.select_filters, slice_filters=self.slice_filters
         )
-        small_box_y = small_box_y.sel(phase_idx= [i for i in list(range(1786)) if i not in outlier_indices],)
+        small_box_y = small_box_y.sel(phase_idx= [i for i in list(range(1786))])
         return small_box_y.values.reshape(len(small_box_y), -1)
 
     def diffsky_y(self, phase_idx=1, sampling='mass_conc'):
@@ -242,6 +241,12 @@ class BaseObservable(ABC):
         #     select_filters=self.select_filters, slice_filters=self.slice_filters
         # ).values.reshape(-1)
 
+    def get_chi2(self, residuals):
+        covariance_data = self.get_covariance_matrix()
+        precision_data = np.linalg.inv(covariance_data)
+        chi2 = np.einsum('ij,jk,ik->i', residuals, precision_data, residuals)
+        return np.sqrt(chi2) / residuals.shape[-1]
+
     def get_emulator_error_matrix(self, select_mocks=None, diagonalize=True,
         method: ['median', 'std'] = 'median'):
         """
@@ -255,10 +260,21 @@ class BaseObservable(ABC):
             return np.diag(error ** 2)
         elif method == 'std':
             cov = np.cov(res.T)
-            if diagonalize is False:
-                return cov
-            else:
-                return np.diag(np.diag(cov))
+        elif method == 'std_chi2_5sigma':
+            data_residuals = self.get_model_residuals_data()
+            chi2 = self.get_chi2(residuals=data_residuals,)
+            mask = chi2 < 5.
+            cov = np.cov(res[mask].T)
+        elif method == 'std_chi2_weighted':
+            data_residuals = self.get_model_residuals_data()
+            chi2 = self.get_chi2(residuals=data_residuals,)
+            weights = 1.0 / (1.0 + chi2)
+            weights = weights / np.sum(weights)
+            cov = np.cov(res.T, aweights=weights)
+        if diagonalize is False:
+            return cov
+        else:
+            return np.diag(np.diag(cov))
 
     def get_model_residuals(self, select_mocks=None):
         """
@@ -296,6 +312,38 @@ class BaseObservable(ABC):
         pred_y = observable.get_model_prediction(test_x, batch=True, return_tensor=False)
         return test_y - pred_y
 
+
+    def get_model_residuals_data(self,):
+        """
+        Calculate the residuals between the data and the test set of the Latin hypercube. 
+        
+        We make a new instance of the class with the test set filters 
+
+        Returns:
+            np.ndarray: Data residuals.
+        """
+        import numpy as np
+        if self.select_mocks is None:
+            raise ValueError(
+                "You need to provide the test set indices to get the data residuals."
+            )
+        if self.select_indices:
+            select_indices = self.select_indices['bin_idx']
+        else:
+            select_indices = {}
+        observable = self.__class__(
+            select_mocks= self.test_set_indices,
+            select_indices=select_indices,
+            select_coordinates=self.select_coordinates,
+            slice_coordinates=self.slice_coordinates)
+        test_x = observable.lhc_x
+        test_y = observable.lhc_y
+        # reshape to (n_samples, n_features)
+        n_samples = len( self.test_set_indices['cosmo_idx']) * len( self.test_set_indices['hod_idx'])
+        test_x = test_x.reshape(n_samples, -1)
+        test_y = test_y.reshape(n_samples, -1)
+        return test_y - self.lhc_y 
+
     def get_model_residuals_list(self):
         import numpy as np
         residuals = []
@@ -331,7 +379,7 @@ class BaseObservable(ABC):
         fn = self.lhc_fname()
         return np.load(fn, allow_pickle=True).item()[self.sep_name]
 
-    def get_model_prediction(self, x, batch=True, return_tensor=True, no_grad=True,):
+    def get_model_prediction(self, x, batch=True, return_tensor=False, no_grad=True,):
         """
         Get model prediction for a given x.
 
@@ -410,5 +458,5 @@ class BaseObservable(ABC):
             return (n_s - 1)*(1 + B*(n_d - n_theta))/(n_s - n_d + n_theta - 1)
         elif method == 'percival-fisher':
             return (n_s - 1)/(n_s - n_d + n_theta - 1)
-        elif _method == 'hartlap':
+        elif method == 'hartlap':
             return (n_s - 1)/(n_s - n_d - 2)

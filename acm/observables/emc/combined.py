@@ -224,6 +224,6 @@ class CombinedObservable:
         if method == 'percival':
             B = (n_s - n_d - 2) / ((n_s - n_d - 1)*(n_s - n_d - 4))
             return (n_s - 1)*(1 + B*(n_d - n_theta))/(n_s - n_d + n_theta - 1)
-        elif _method == 'hartlap':
+        elif method == 'hartlap':
             return (n_s - 1)/(n_s - n_d - 2)
 
