@@ -236,7 +236,8 @@ class BoxHOD:
                     1, tracer_density_mean[tracer] * self.boxsize ** 3 / n_tracers
                 )
         hod_dict = self.ball.run_hod(self.ball.tracers, self.ball.want_rsd, Nthread=nthreads, reseed=seed)
-        hod_dict = self.format_catalog(hod_dict, tracer, add_rsd)
+        for tracer in self.tracers:
+            hod_dict = self.format_catalog(hod_dict, tracer, add_rsd)
         return hod_dict
 
     def format_catalog(
