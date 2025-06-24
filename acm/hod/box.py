@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import yaml
 import numpy as np
-from typing import List
+from typing import List, Dict
 from abacusnbody.hod import abacus_hod
 from cosmoprimo.fiducial import AbacusSummit
 import mockfactory
@@ -28,7 +28,7 @@ class BoxHOD:
     """
     def __init__(
         self,
-        varied_params, 
+        varied_params: Dict[List[str]], 
         config_file: str = None, 
         cosmo_idx: int = 0, 
         phase_idx: int = 0,
@@ -78,7 +78,8 @@ class BoxHOD:
             config_file = Path(config_dir) /  'box.yaml'
         config = yaml.safe_load(open(config_file))
         self.setup(config, DM_DICT)
-        self.check_params(varied_params)
+        for tracer in self.tracers:
+            self.check_params(varied_params[tracer])
 
     def setup(self, config: dict, DM_DICT: dict): # Will override most of the config file !
         """
@@ -106,7 +107,6 @@ class BoxHOD:
         for tracer in HOD_params['tracer_flags'].keys():
             if tracer not in self.tracers:
                 HOD_params['tracer_flags'][tracer] = False
-        print(HOD_params['tracer_flags'])
         self.ball = abacus_hod.AbacusHOD(sim_params, HOD_params)
         self.ball.params['Lbox'] = self.boxsize
         if self.cosmo_idx in [300, 301, 302, 303]:
@@ -178,7 +178,7 @@ class BoxHOD:
         hod_params: dict, 
         nthreads: int = 1, 
         tracer: str = 'LRG', 
-        tracer_density_mean: float = None,
+        tracer_density_mean: Dict[str, float] = None,
         seed = None, 
         save_fn: str = None, 
         add_rsd: bool = False,
@@ -218,23 +218,23 @@ class BoxHOD:
             If the HOD parameters do not match the varied parameters.
         """
         if seed == 0: seed = None
-        if tracer not in ['LRG']:
-            raise ValueError('Only LRGs are currently supported.')
-        hod_params = self.param_mapping(hod_params)
-        if set(hod_params.keys()) != set(self.varied_params):
-            raise ValueError('Invalid HOD parameters. Must match the varied parameters.')
-        for key in hod_params.keys():
-            if key == 'sigma' and tracer == 'LRG':
-                self.ball.tracers[tracer][key] = 10**hod_params[key]
-            else:
-                self.ball.tracers[tracer][key] = hod_params[key]
-        self.ball.tracers[tracer]['ic'] = 1
+        for tracer in self.tracers:
+            hod_params[tracer] = self.param_mapping(hod_params[tracer])
+            if set(hod_params[tracer].keys()) != set(self.varied_params[tracer]):
+                raise ValueError('Invalid HOD parameters. Must match the varied parameters.')
+            for key in hod_params.keys():
+                if key == 'sigma' and tracer == 'LRG':
+                    self.ball.tracers[tracer][key] = 10**hod_params[key]
+                else:
+                    self.ball.tracers[tracer][key] = hod_params[key]
+            self.ball.tracers[tracer]['ic'] = 1
         ngal_dict = self.ball.compute_ngal(Nthread=nthreads)[0]
-        n_tracers= ngal_dict[tracer]
-        if tracer_density_mean is not None:
-            self.ball.tracers[tracer]['ic'] = min(
-                1, tracer_density_mean * self.boxsize ** 3 / n_tracers
-            )
+        for tracer in self.tracers:
+            n_tracers = ngal_dict[tracer]
+            if tracer_density_mean is not None and tracer_density_mean[tracer] is not None:
+                self.ball.tracers[tracer]['ic'] = min(
+                    1, tracer_density_mean[tracer] * self.boxsize ** 3 / n_tracers
+                )
         hod_dict = self.ball.run_hod(self.ball.tracers, self.ball.want_rsd, Nthread=nthreads, reseed=seed)
         hod_dict = self.format_catalog(hod_dict, tracer, add_rsd)
         return hod_dict
