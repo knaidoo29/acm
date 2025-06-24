@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import yaml
 import numpy as np
+from typing import List
 from abacusnbody.hod import abacus_hod
 from cosmoprimo.fiducial import AbacusSummit
 import mockfactory
@@ -33,6 +34,7 @@ class BoxHOD:
         phase_idx: int = 0,
         sim_type: str = 'base', 
         redshift: float = 0.5,
+        tracers: List[str] = ['LRG'],
         DM_DICT: dict = LRG_Abacus_DM['box']):
         """
         Initialize the BoxHOD class.
@@ -52,6 +54,8 @@ class BoxHOD:
             Type of simulation. Must be either 'base' or 'small'. Default is 'base'.
         redshift : float, optional
             Redshift value. Default is 0.5.
+        tracers: List[str], optional
+            List of tracers to use. Default is ['LRG'].
         DM_DICT : dict, optional
             Dictionary containing dark matter information. Default is the LRG_Abacus_DM dictionary for boxes from `acm.data.paths`.
             
@@ -68,6 +72,7 @@ class BoxHOD:
         self.sim_type = sim_type
         self.boxsize = 2000 if sim_type in ['base', 'png'] else 500
         self.redshift = redshift
+        self.tracers = tracers
         if config_file is None:
             config_dir = os.path.dirname(os.path.abspath(__file__))
             config_file = Path(config_dir) /  'box.yaml'
@@ -95,6 +100,13 @@ class BoxHOD:
         sim_params['sim_name'] = self.abacus_simname()
         sim_params['z_mock'] = self.redshift
         HOD_params = config['HOD_params']
+        # set the right tracers
+        for tracer in self.tracers:
+            HOD_params['tracer_flags'][tracer] = True
+        for tracer in HOD_params['tracer_flags'].keys():
+            if tracer not in self.tracers:
+                HOD_params['tracer_flags'][tracer] = False
+        print(HOD_params['tracer_flags'])
         self.ball = abacus_hod.AbacusHOD(sim_params, HOD_params)
         self.ball.params['Lbox'] = self.boxsize
         if self.cosmo_idx in [300, 301, 302, 303]:
