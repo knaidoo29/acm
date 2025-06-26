@@ -9,15 +9,14 @@ class BaseObservableEMC(Observable):
     Base class for all the observables in the EMC project.
     """
     def __init__(self, phase_correction: bool = False, **kwargs):
+        self.paths = get_data_dirs('emc')
+        
         if phase_correction and hasattr(self, 'compute_phase_correction'):
             self.logger.info('Computing phase correction.')
             self.phase_correction = self.compute_phase_correction()
         super().__init__(**kwargs)
         
     # NOTE: Define the stat name in the child class !
-    # NOTE : Paths and _summary_coords_dict are mutable, so any modification in the child class will affect the parent class unless redefined.
-    
-    paths = get_data_dirs('emc')
     
     _summary_coords_dict = {
         'sample_features': {

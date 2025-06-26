@@ -20,13 +20,6 @@ class GalaxyCorrelationFunctionMultipoles(BaseObservableEMC):
         }
     
     @property
-    def paths(self) -> dict:
-        paths = super().paths
-        paths['statistic_dir'] = f'/pscratch/sd/e/epaillas/emc/training_sets/tpcf/cosmo+hod_bugfix/z0.5/yuan23_prior/'
-        paths['statistic_covariance_dir'] = f'/pscratch/sd/e/epaillas/emc/covariance_sets/tpcf/z0.5/yuan23_prior/'
-        return paths
-    
-    @property
     def checkpoint_fn(self) -> str:
         """
         Override checkpoint_fn to point to the correct checkpoint file.

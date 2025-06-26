@@ -60,7 +60,6 @@ class BaseClass(ABC):
         return self.get_save_handle()
     
     #%% Class attributes
-    
     stat_name = None
     paths = None
     summary_coords_dict = None

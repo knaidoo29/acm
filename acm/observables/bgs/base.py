@@ -1,4 +1,4 @@
-from acm.observables.observable import Observable
+from acm.observables import Observable
 from acm.utils.default import cosmo_list # List of cosmologies in AbacusSummit
 from acm.utils import get_data_dirs
 import numpy as np
@@ -7,10 +7,12 @@ class BaseObservableBGS(Observable):
     """
     Base class for the application of the ACM pipeline to the BGS dataset.
     """
+    def __init__(self, **kwargs):
+        self.paths = get_data_dirs('bgs')
+        
+        super().__init__(**kwargs)
+        
     # NOTE: Define the stat name in the child class !
-    # NOTE : Paths and _summary_coords_dict are mutable, so any modification in the child class will affect the parent class unless redefined.
-    
-    paths = get_data_dirs('bgs')
     
     _summary_coords_dict = {
         'sample_features': {
