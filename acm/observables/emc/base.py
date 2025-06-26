@@ -243,8 +243,6 @@ class BaseObservable(ABC):
 
     def get_chi2(self, residuals):
         covariance_data = self.get_covariance_matrix()
-        print(covariance_data)
-        print(np.shape(covariance_data))
         precision_data = np.linalg.inv(covariance_data)
         chi2 = np.einsum('ij,jk,ik->i', residuals, precision_data, residuals)
         return np.sqrt(chi2) / residuals.shape[-1]
