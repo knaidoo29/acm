@@ -243,6 +243,8 @@ class BaseObservable(ABC):
 
     def get_chi2(self, residuals):
         covariance_data = self.get_covariance_matrix()
+        print(covariance_data)
+        print(np.shape(covariance_data))
         precision_data = np.linalg.inv(covariance_data)
         chi2 = np.einsum('ij,jk,ik->i', residuals, precision_data, residuals)
         return np.sqrt(chi2) / residuals.shape[-1]
@@ -261,12 +263,12 @@ class BaseObservable(ABC):
         elif method == 'std':
             cov = np.cov(res.T)
         elif method == 'std_chi2_5sigma':
-            data_residuals = self.get_model_residuals_data()
+            data_residuals = self.get_model_residuals_data(select_mocks=select_mocks)
             chi2 = self.get_chi2(residuals=data_residuals,)
             mask = chi2 < 5.
             cov = np.cov(res[mask].T)
         elif method == 'std_chi2_weighted':
-            data_residuals = self.get_model_residuals_data()
+            data_residuals = self.get_model_residuals_data(select_mocks=select_mocks)
             chi2 = self.get_chi2(residuals=data_residuals,)
             weights = 1.0 / (1.0 + chi2)
             weights = weights / np.sum(weights)
@@ -313,7 +315,7 @@ class BaseObservable(ABC):
         return test_y - pred_y
 
 
-    def get_model_residuals_data(self,):
+    def get_model_residuals_data(self, select_mocks=None):
         """
         Calculate the residuals between the data and the test set of the Latin hypercube. 
         
@@ -323,16 +325,14 @@ class BaseObservable(ABC):
             np.ndarray: Data residuals.
         """
         import numpy as np
-        if self.select_mocks is None:
-            raise ValueError(
-                "You need to provide the test set indices to get the data residuals."
-            )
+        if select_mocks is None:
+            select_mocks = self.test_set_indices
         if self.select_indices:
             select_indices = self.select_indices['bin_idx']
         else:
             select_indices = {}
         observable = self.__class__(
-            select_mocks= self.test_set_indices,
+            select_mocks=select_mocks,
             select_indices=select_indices,
             select_coordinates=self.select_coordinates,
             slice_coordinates=self.slice_coordinates)
@@ -428,7 +428,8 @@ class BaseObservable(ABC):
             to account for the volume difference between the small boxes and the target
             simulation.
         """
-        return np.cov(self.small_box_y.T) / divide_factor
+        cov = np.cov(self.small_box_y.T) / divide_factor
+        return np.atleast_2d(cov)
 
     def get_phase_matrix(self):
         """
