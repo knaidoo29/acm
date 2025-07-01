@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --account=desi
 #SBATCH -q preempt
-#SBATCH -t 06:00:00
+#SBATCH -t 12:00:00
 #SBATCH --nodes=1
 #SBATCH --constraint=cpu
 #SBATCH -c 256
-#SBATCH --array=2-5
+#SBATCH --array=3
 
 leading_zero_fill ()
 {
@@ -13,9 +13,9 @@ leading_zero_fill ()
     printf "%0$1d\\n" "$2"
 }
 
-ecosmodesi
+source /global/common/software/desi/users/adematti/cosmodesi_environment.sh main; export PYTHONPATH=/global/cfs/cdirs/desicollab/users/epaillas/code/pyrecon:/global/cfs/cdirs/desicollab/users/epaillas/code/abacusutils:/global/cfs/cdirs/desicollab/users/epaillas/code/pocomc:/global/cfs/cdirs/desicollab/users/epaillas/code/FOLPS-nu:$PYTHONPATH
 # source /global/common/software/desi/users/adematti/cosmodesi_environment.sh main
-PATH2CONFIG=~/code/acm/scripts/old_emc/hod_generation/abacushod_config_base.yaml
+PATH2CONFIG=~/code/acm/scripts/emc/hod_generation/abacushod_config_base.yaml
 REDSHIFTS=( 0.500 )
 # COSMO=000
 # PHASE=002
@@ -23,7 +23,7 @@ REDSHIFTS=( 0.500 )
 PHASE=$(leading_zero_fill 3 $SLURM_ARRAY_TASK_ID)
 # PHASE=001
 # COSMO=$(leading_zero_fill 3 $SLURM_ARRAY_TASK_ID)
-COSMO=001
+COSMO=003
 
 # SLURM_ARRAY_TASK_ID=0
 

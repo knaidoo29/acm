@@ -28,6 +28,10 @@ LRG_Abacus_DM = {
             'sim_dir': '/global/cfs/cdirs/desi/cosmosim/Abacus/',
             'subsample_dir': '/pscratch/sd/e/epaillas/summit_subsamples/boxes/base/',
         },
+        'png': {
+            'sim_dir': '/global/cfs/cdirs/desi/cosmosim/Abacus/',
+            'subsample_dir': '/pscratch/sd/e/epaillas/summit_subsamples/boxes/base/',
+        },
     },
     'lightcone': {
         'base': {

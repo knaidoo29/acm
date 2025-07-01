@@ -123,24 +123,23 @@ ax[1][1].annotate('6', xy=(0.1, 0.9), xycoords='axes fraction',
 # Density PDF
 statistic = f'GalaxyOverdensityPDF'
 sep, data_y, error, model = get_data(statistic)
-ax[1, 2].errorbar(sep, data_y, error, markersize=3.0, elinewidth=1.0,
+ax[1, 2].errorbar(np.arange(len(data_y))[::3], data_y[::3], error[::3], markersize=3.0, elinewidth=1.0,
                 marker='o', ls='', color='dimgrey')
-ax[1, 2].plot(sep, model, color='r')
-ax[1][2].set_xlim(-1.2, 2)
-ax[1][2].set_xlabel(r'$\textrm{Overdensity } \Delta$', fontsize=15)
+ax[1, 2].plot(np.arange(len(data_y)), model, color='r')
+ax[1][2].set_xlabel(r'$\textrm{Coefficient index}$', fontsize=15)
 ax[1][2].set_ylabel(r'$\textrm{PDF}$', fontsize=15)
 ax[1][2].set_title(r'$\textrm{Overdensity PDF}$', fontsize=15)
-ax[1][2].annotate('7', xy=(0.9, 0.9), xycoords='axes fraction',
+ax[1][2].annotate('7', xy=(0.1, 0.9), xycoords='axes fraction',
                 fontsize=15, ha='center', va='center', bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
 
 # Cumulant Generating Function
 statistic = f'CumulantGeneratingFunction'
 sep, data_y, error, model = get_data(statistic, return_model=True)
-ax[1, 3].errorbar(sep, data_y, error, markersize=3.0, elinewidth=1.0,
+ax[1, 3].errorbar(np.arange(len(data_y)), data_y, error, markersize=3.0, elinewidth=1.0,
                 marker='o', ls='', color='dimgrey')
-ax[1, 3].plot(sep, model, color='r')
+ax[1, 3].plot(np.arange(len(data_y)), model, color='r')
 # ax[1][3].set_xlim(-1.2, 2)
-ax[1][3].set_xlabel(r'$\lambda$', fontsize=15)
+ax[1][3].set_xlabel(r'$\textrm{bin index}$', fontsize=15)
 ax[1][3].set_ylabel(r'$\log\langle e^{\lambda \delta}\rangle$', fontsize=15)
 ax[1][3].set_title(r'$\textrm{Cumulant generating function}$', fontsize=15)
 ax[1][3].annotate('8', xy=(0.9, 0.9), xycoords='axes fraction',
@@ -181,22 +180,34 @@ for ell in [0, 2]:
     ax[2, 2].plot(sep[::2], model[::2], color='r')
 ax[2][2].set_xlabel(r'$s\,[h^{-1}{\rm Mpc}]$', fontsize=15)
 ax[2][2].set_ylabel(r'$\xi_\ell(s)$', fontsize=15)
-ax[2][2].set_title(r'$\textrm{Voxel void-galaxy CF}$', fontsize=15)
+ax[2][2].set_title(r'$\textrm{Void-galaxy CCF}$', fontsize=15)
 ax[2][2].annotate('11', xy=(0.9, 0.1), xycoords='axes fraction',
                 fontsize=15, ha='center', va='center', bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
 
-# DT Void-galaxy 2PCF
-statistic = 'DTVoidGalaxyCorrelationFunctionMultipoles'
-for ell in [0, 2]:
-    select_coordinates = {'multipoles': [ell]}
-    sep, data_y, error, model = get_data(statistic, select_coordinates=select_coordinates)
-    ax[2, 3].errorbar(sep[::1], sep[::1]**2 * data_y[::1], sep[::1]**2 * error[::1], markersize=3.0, elinewidth=1.0,
-                    marker='o', ls='', color='dimgrey')
-    ax[2, 3].plot(sep[::1], sep[::1]**2 * model[::1], color='r')
-ax[2][3].set_xlabel(r'$s\,[h^{-1}{\rm Mpc}]$', fontsize=15)
-ax[2][3].set_ylabel(r'$s^2 \xi_\ell(s)\, [h^{-2}{\rm Mpc}^2]$', fontsize=15)
-ax[2][3].set_title(r'$\textrm{DT void-galaxy CF}$', fontsize=15)
-ax[2][3].annotate('12', xy=(0.9, 0.1), xycoords='axes fraction',
+# # DT Void-galaxy 2PCF
+# statistic = 'DTVoidGalaxyCorrelationFunctionMultipoles'
+# for ell in [0, 2]:
+#     select_coordinates = {'multipoles': [ell]}
+#     sep, data_y, error, model = get_data(statistic, select_coordinates=select_coordinates)
+#     ax[2, 3].errorbar(sep[::1], sep[::1]**2 * data_y[::1], sep[::1]**2 * error[::1], markersize=3.0, elinewidth=1.0,
+#                     marker='o', ls='', color='dimgrey')
+#     ax[2, 3].plot(sep[::1], sep[::1]**2 * model[::1], color='r')
+# ax[2][3].set_xlabel(r'$s\,[h^{-1}{\rm Mpc}]$', fontsize=15)
+# ax[2][3].set_ylabel(r'$s^2 \xi_\ell(s)\, [h^{-2}{\rm Mpc}^2]$', fontsize=15)
+# ax[2][3].set_title(r'$\textrm{DT void-galaxy CF}$', fontsize=15)
+# ax[2][3].annotate('12', xy=(0.9, 0.1), xycoords='axes fraction',
+#                 fontsize=15, ha='center', va='center', bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
+
+# VIDE void size function
+statistic = 'VIDEVoidSizeFunction'
+sep, data_y, error, model = get_data(statistic, select_coordinates=select_coordinates)
+ax[2, 3].errorbar(sep, data_y, error, markersize=3.0, elinewidth=1.0,
+                marker='o', ls='', color='dimgrey')
+ax[2, 3].plot(sep, model, color='r')
+ax[2][3].set_xlabel(r'$R_{\rm void}\,[h^{-1}{\rm Mpc}]$', fontsize=15)
+ax[2][3].set_ylabel(r'$\textrm{PDF}$', fontsize=15)
+ax[2][3].set_title(r'$\textrm{Void size function}$', fontsize=15)
+ax[2][3].annotate('12', xy=(0.9, 0.9), xycoords='axes fraction',
                 fontsize=15, ha='center', va='center', bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white'))
 
 

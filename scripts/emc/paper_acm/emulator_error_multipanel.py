@@ -12,7 +12,7 @@ plt.rc('font', family='serif')
 def get_data(statistic, return_model=True):
     stat = getattr(emc, statistic)
     observable = stat(select_coordinates=select_coordinates, slice_coordinates=slice_coordinates)
-    covariance_matrix = observable.get_covariance_matrix(divide_factor=27)
+    covariance_matrix = observable.get_covariance_matrix(divide_factor=64)
     emulator_error = observable.get_emulator_error()
     data_error = np.sqrt(np.diag(covariance_matrix))
     sep = observable.separation
@@ -101,15 +101,15 @@ ax[2][1].set_title(r'$\textrm{Wavelet scattering transform}$', fontsize=15)
 statistic = f'GalaxyOverdensityPDF'
 sep, emulator_error, data_error = get_data(statistic)
 ax[1, 2].plot(emulator_error/data_error)
-ax[1][2].set_xlabel(r'$\textrm{Overdensity } \Delta$', fontsize=15)
+ax[1][2].set_xlabel(r'$\textrm{bin index}$', fontsize=15)
 ax[1][2].set_ylabel(r'$(X_{\rm model} - X_{\rm data})/\sigma_{\rm data}$', fontsize=15)
 ax[1][2].set_title(r'$\textrm{Overdensity PDF}$', fontsize=15)
 
 # Cumulant Generating Function
 statistic = f'CumulantGeneratingFunction'
 sep, emulator_error, data_error = get_data(statistic)
-ax[1, 3].plot(sep, emulator_error/data_error)
-ax[1][3].set_xlabel(r'$\lambda$', fontsize=15)
+ax[1, 3].plot(np.arange(len(emulator_error)), emulator_error/data_error)
+ax[1][3].set_xlabel(r'$\textrm{bin index}$', fontsize=15)
 ax[1][3].set_ylabel(r'$(X_{\rm model} - X_{\rm data})/\sigma_{\rm data}$', fontsize=15)
 ax[1][3].set_title(r'$\textrm{Cumulant Generating Function}$', fontsize=15)
 
@@ -129,23 +129,32 @@ for ell in [0, 2]:
     ax[2, 2].plot(sep, emulator_error/data_error, label=f'$\ell={ell}$')
 ax[2][2].set_xlabel(r'$s\,[h^{-1}{\rm Mpc}]$', fontsize=15)
 ax[2][2].set_ylabel(r'$(X_{\rm model} - X_{\rm data})/\sigma_{\rm data}$', fontsize=15)
-ax[2][2].set_title(r'$\textrm{Voxel Void-galaxy CF}$', fontsize=15)
+ax[2][2].set_title(r'$\textrm{Void-galaxy CCF}$', fontsize=15)
 ax[2][2].legend(fontsize=13)
 
-# DT Void-galaxy 2PCF
-statistic = 'DTVoidGalaxyCorrelationFunctionMultipoles'
-for ell in [0, 2]:
-    select_coordinates = {'multipoles': [ell]}
-    sep, emulator_error, data_error = get_data(statistic)
-    ax[2, 3].plot(sep, emulator_error/data_error, label=f'$\ell={ell}$')
-ax[2][3].set_xlabel(r'$s\,[h^{-1}{\rm Mpc}]$', fontsize=15)
+# # DT Void-galaxy 2PCF
+# statistic = 'DTVoidGalaxyCorrelationFunctionMultipoles'
+# for ell in [0, 2]:
+#     select_coordinates = {'multipoles': [ell]}
+#     sep, emulator_error, data_error = get_data(statistic)
+#     ax[2, 3].plot(sep, emulator_error/data_error, label=f'$\ell={ell}$')
+# ax[2][3].set_xlabel(r'$s\,[h^{-1}{\rm Mpc}]$', fontsize=15)
+# ax[2][3].set_ylabel(r'$(X_{\rm model} - X_{\rm data})/\sigma_{\rm data}$', fontsize=15)
+# ax[2][3].set_title(r'$\textrm{DT Void-galaxy CF}$', fontsize=15)
+
+# VIDE void size function
+statistic = 'VIDEVoidSizeFunction'
+sep, emulator_error, data_error = get_data(statistic)
+print(data_error)
+ax[2, 3].plot(sep, emulator_error/data_error)
+ax[2][3].set_xlabel(r'$R_{\rm void}\,[h^{-1}{\rm Mpc}]$', fontsize=15)
 ax[2][3].set_ylabel(r'$(X_{\rm model} - X_{\rm data})/\sigma_{\rm data}$', fontsize=15)
-ax[2][3].set_title(r'$\textrm{DT Void-galaxy CF}$', fontsize=15)
+ax[2][3].set_title(r'$\textrm{Void size function}$', fontsize=15)
 
 for ax in fig.axes:
     ax.xaxis.set_tick_params(labelsize=15)
     ax.yaxis.set_tick_params(labelsize=15)
 
 plt.tight_layout()
-plt.savefig('emulator_error_multipanel_lrg.pdf', bbox_inches='tight')
-plt.savefig('emulator_error_multipanel_lrg.png', bbox_inches='tight', dpi=300)
+plt.savefig('emulator_error_multipanel.pdf', bbox_inches='tight')
+plt.savefig('emulator_error_multipanel.png', bbox_inches='tight', dpi=300)

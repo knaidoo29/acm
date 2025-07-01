@@ -13,16 +13,28 @@ legend_labels = []
 
 # params = ['logM_cut', 'logM_1', 'sigma', 'kappa', 'alpha']
 # params = ['omega_cdm', 'sigma8_m', 'n_s', 'logM_cut', 'logM_1', 'sigma', 'kappa', 'alpha']
-params = ['Omega_m', 'sigma8_m', 'n_s', 'h']
+params = ['omega_cdm', 'sigma8_m', 'n_s']
 # params = ['A_cen', 'A_sat', 'B_cen', 'B_sat']
 
-stats = ['voxel_voids', 'dsc_pk', 'dt_gv']
+stats = [
+    'vide_vsf_10-80_5',
+    'vide_voids',
+    'voxel_voids',
+    'dsc_pk_q0',
+    'dt_gv',
+]
 # labels = [r'$P ^{\rm DSC, 1}_\ell(k)$', r'$\xi^{\rm DT}_\ell(s)$']
-labels = [r'Voxel voids', r'Density-split voids', r'Delaunay spheres']
+labels = [
+    'VIDE void size function',
+    r'VIDE void density profile',
+    r'Voxel void-galaxy CCF',
+    r'DSC $Q_0$-galaxy CCF',
+    r'DT void-galaxy CCF',
+]
 
 for stat, label in zip(stats, labels):
 
-    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/voids/c000_hod030/LCDM/'
+    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/jun28/c000_hod030/LCDM_baseHOD/'
     data_fn = Path(data_dir) / f"chain_number_density+{stat}.npy"
     chain = Chain.load(data_fn)
     samples = Chain.to_getdist(chain, add_derived=True)
@@ -32,7 +44,7 @@ for stat, label in zip(stats, labels):
 markers = chain.markers
     
 g = plots.get_subplot_plotter(width_inch=6)
-g.settings.constrained_layout = True
+g.settings.constrained_layout = False
 g.settings.axis_marker_lw = 1.0
 g.settings.axis_marker_ls = "--"
 g.settings.title_limit_labels = False
@@ -41,9 +53,9 @@ g.settings.legend_colored_text = True
 g.settings.figure_legend_frame = False
 g.settings.figure_legend_ncol = 1
 g.settings.linewidth_contour = 1.0
-g.settings.legend_fontsize = 24
-g.settings.axes_fontsize = 20
-g.settings.axes_labelsize = 28
+g.settings.legend_fontsize = 18.5
+g.settings.axes_fontsize = 18
+g.settings.axes_labelsize = 25
 g.settings.axis_tick_x_rotation = 45
 # g.settings.axis_tick_max_labels = 6
 g.settings.solid_colors = ['#4165c0', '#e770a2', '#5ac3be', '#696969', '#f79a1e', '#ba7dcd'][::-1]
@@ -63,5 +75,6 @@ g.triangle_plot(
 )
 
 
-plt.savefig('void_comparison.png', dpi=300, bbox_inches='tight')
+# plt.savefig('void_comparison.png', dpi=300, bbox_inches='tight')
+plt.savefig('void_comparison.pdf', bbox_inches='tight')
 # plt.savefig('summaries_omegam_sigma8.pdf', bbox_inches='tight')

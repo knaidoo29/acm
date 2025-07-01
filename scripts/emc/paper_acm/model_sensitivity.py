@@ -65,7 +65,7 @@ print(f'Loaded covariance matrix with shape: {covariance_matrix.shape}')
 s = observable.separation
 
 
-for param_name in ['w0_fld']:
+for param_name in ['omega_cdm', 'omega_b']:
 
     fig, ax = plt.subplots(2, 1, figsize=(4, 5), sharex=True)
 
@@ -86,8 +86,8 @@ for param_name in ['w0_fld']:
     divider = make_axes_locatable(fig.axes[0])
     cax = divider.append_axes('top', size="7%", pad=0.15)
 
-    # sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=prior_sample.min(), vmax=prior_sample.max()))
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1.2, vmax=-0.8))
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=prior_sample.min(), vmax=prior_sample.max()))
+    # sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1.2, vmax=-0.8))
     cbar = plt.colorbar(sm, cax=cax, orientation='horizontal')
     cbar.set_label(labels[param_name], rotation=0, labelpad=10, fontsize=20)
 
