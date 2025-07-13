@@ -67,17 +67,31 @@ if __name__ == '__main__':
 
     # Greedy optimised all
     bins, _, fisher= run_greedy_fisher(
-        statistics,
-        max_bins=max_bins, 
-        add_emulator_error=True,
-        fixed_parameters_idx=None,
+       statistics,
+       max_bins=max_bins, 
+       add_emulator_error=True,
+       fixed_parameters_idx=None,
     )
     all_fisher = {
-        'fisher': fisher,
-        'bins': bins,
+       'fisher': fisher,
+       'bins': bins,
     }
     with open(data_path / 'all.json', 'w') as f:
-        json.dump(all_fisher, f)
+       json.dump(all_fisher, f)
+
+    # Greedy fixed blcdm
+    bins, _, fisher= run_greedy_fisher(
+       statistics,
+       max_bins=max_bins, 
+       add_emulator_error=True,
+       fixed_parameters_idx=blcdm_param_idx,
+    )
+    all_fisher = {
+       'fisher': fisher,
+       'bins': bins,
+    }
+    with open(data_path / 'fixed_blcdm.json', 'w') as f:
+       json.dump(all_fisher, f)
 
     #  Fix blcdm, marginalised over hod
     bins_fixed_blcdm, fisher_fixed_blcdm = run_marginalised_greedy_fisher(
