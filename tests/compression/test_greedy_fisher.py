@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import torch
 from scipy.stats import multivariate_normal
-from acm.compression.gf import safe_inverse, run_greedy_fisher 
+from acm.compression.greedy_fisher import safe_inverse, run_greedy_fisher 
 import acm.observables.emc as emc
 
 
