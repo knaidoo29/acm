@@ -2,13 +2,17 @@ import os
 from pathlib import Path
 import yaml
 import numpy as np
-from abacusnbody.hod import abacus_hod
+# from abacusnbody.hod import abacus_hod
 from cosmoprimo.fiducial import AbacusSummit
 from astropy.io import fits
 from astropy.table import Table
 import logging
 import warnings
 import sys
+# sys.path.append(os.environ["HOME"]+'/abacusutils_local_lc_update/abacusutils/')
+#sys.path.insert(1,'/global/u1/x/xychen/abacusutils_local_lc_update/abacusutils/')
+from abacusnbody.hod import abacus_hod
+
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 
@@ -53,6 +57,7 @@ class BoxHOD:
             sim_dir = '/global/cfs/cdirs/desi/cosmosim/Abacus/'
             # subsample_dir = '/pscratch/sd/s/sihany/summit_subsamples_cleaned_desi'
             subsample_dir = '/pscratch/sd/e/epaillas/summit_subsamples/boxes/base/'
+            # subsample_dir = '/pscratch/sd/b/boryanah/AbacusHOD_scratch/mocks_lc_subsample/'
         return sim_dir, subsample_dir
 
     def abacus_simname(self):
@@ -168,14 +173,16 @@ class BoxHOD:
         return hod_dict
 
 class LightconeHOD:
-    def __init__(self, varied_params, config_file=None, cosmo_idx=0, phase_idx=0,
+    def __init__(self, varied_params, config_file=None, cosmo_idx=0, phase_idx=0, sim_type='base', boxsize = 2000,
         zrange=[0.4, 0.8]):
         self.logger = logging.getLogger('LightconeHOD')
         self.cosmo_idx = cosmo_idx
         self.phase_idx = phase_idx
-        self.sim_type = 'base'
+#        self.sim_type = 'base'
+        self.sim_type = sim_type
         self.zrange = zrange
-        self.boxsize = 2000
+#        self.boxsize = 2000
+        self.boxsize = boxsize
         if config_file is None:
             config_dir = os.path.dirname(os.path.abspath(__file__))
             config_file = Path(config_dir) /  'lightcone.yaml'
@@ -185,25 +192,34 @@ class LightconeHOD:
 
     @property
     def snap_redshifts(self):
-        return [0.400, 0.450, 0.500, 0.575, 0.650, 0.725, 0.800, 0.875, 0.950, 1.025, 1.100]
+        # return [0.400, 0.450, 0.500, 0.575, 0.650, 0.725, 0.800, 0.875, 0.950, 1.025, 1.100]
+        return [0.100,0.150,0.200,0.250,0.300,0.350,0.400, 0.450, 0.500, 0.575, 0.650, 0.725, 0.800, 0.875, 0.950, 1.025, 1.100,1.175,1.250,1.325,1.400]
 
     def snap_in_zrange(self):
-        snap_min = np.abs(np.array(self.snap_redshifts) - self.zrange[0]).argmin()
-        snap_max = np.abs(np.array(self.snap_redshifts) - self.zrange[1]).argmin()
-        snaps = self.snap_redshifts[snap_min:snap_max+2]  # Include an extra snapshot at high-z to avoid edge effects
+        # snap_min = np.abs(np.array(self.snap_redshifts) - self.zrange[0]).argmin()
+        # snap_max = np.abs(np.array(self.snap_redshifts) - self.zrange[1]).argmin()
+        # snaps = self.snap_redshifts[snap_min:snap_max+2]  # Include an extra snapshot at high-z to avoid edge effects
+        snap_min = self.snap_redshifts.index(self.zrange[0])
+        snap_max = self.snap_redshifts.index(self.zrange[1])
+        snaps = self.snap_redshifts[snap_min:snap_max+1]
+        #snaps = self.snap_redshifts[snap_min:snap_max]  # Include an extra snapshot at high-z to avoid edge effects
         self.logger.info(f'Lightcone composed of snapshots at z: {snaps}.')
         return snaps
         # return [z for z in self.snap_redshifts if z >= self.zrange[0] and z <= self.zrange[1]]
 
     def abacus_simdirs(self):
         sim_dir = '/global/cfs/cdirs/desi/public/cosmosim/AbacusSummit/halo_light_cones/'
-        subsample_dir = '/pscratch/sd/e/epaillas/summit_subsamples/lightcones/'
+       # subsample_dir = '/pscratch/sd/e/epaillas/summit_subsamples/lightcones/'
+        subsample_dir = '/pscratch/sd/x/xychen/lightcone_test/subsampled_files/lightcones/'
+        # subsample_dir = '/pscratch/sd/b/boryanah/AbacusHOD_scratch/mocks_lc_subsample/'
+
         return sim_dir, subsample_dir
 
     def abacus_simname(self):
         return f'AbacusSummit_{self.sim_type}_c{self.cosmo_idx:03}_ph{self.phase_idx:03}'
 
     def setup(self, config):
+        import pandas
         sim_params = config['sim_params']
         sim_dir, subsample_dir = self.abacus_simdirs()
         sim_params['sim_dir'] = sim_dir
@@ -211,8 +227,25 @@ class LightconeHOD:
         sim_params['sim_name'] = self.abacus_simname()
         HOD_params = config['HOD_params']
         self.balls = []
+        # def get_hod_params(znap):
+        #     import pandas
+        #     """Some example HOD parameters."""
+        #     # hod_dir = Path(f'/pscratch/sd/e/epaillas/emc/hod_params/yuan23/')
+        #     hod_dir = Path(f'/pscratch/sd/x/xychen/lightcone_test/')
+        #     # hod_fn = hod_dir / f'hod_params_yuan23_c000.csv'
+        #     hod_fn = hod_dir / f'hod_params_secondgen_lrg_z{znap:.3f}.csv'
+        #     df = pandas.read_csv(hod_fn, delimiter=',')
+        #     df.columns = df.columns.str.strip()
+        #     df.columns = list(df.columns.str.strip('# ').values)
+        #     return df.to_dict('list')
+        # for znap in self.snap_in_zrange():
+        #     # sim_params['z_mock'] = znap
+        #     #self.balls += [abacus_hod.AbacusHOD(sim_params, HOD_params)]
+        #     print(znap)
+        #     self.balls +=[abacus_hod.AbacusHOD(sim_params),get_hod_params(znap)]
         for znap in self.snap_in_zrange():
             sim_params['z_mock'] = znap
+            print(znap)
             self.balls += [abacus_hod.AbacusHOD(sim_params, HOD_params)]
         self.cosmo = AbacusSummit(self.cosmo_idx)
         # self.az = 1 / (1 + self.redshift)
@@ -232,7 +265,7 @@ class LightconeHOD:
         self.logger.info(f'Default parameters: {default}.')
 
     def run(self, hod_params, nthreads=1, tracer='LRG', make_randoms=False, add_weights=False,
-        seed=None, save_fn=None, full_sky=False, alpha_rand=1, apply_nz=False):
+        seed=None, save_fn=None, full_sky=False, alpha_rand=1, apply_nz=False,DESI_photo_nz=False,sim_type='base'):
         if seed == 0: seed = None
         if tracer not in ['LRG']:
             raise ValueError('Only LRGs are currently supported.')
@@ -241,10 +274,12 @@ class LightconeHOD:
             raise ValueError('Invalid HOD parameters. Must match the varied parameters.')
         for i, ball in enumerate(self.balls):
             for key in hod_params.keys():
-                if key == 'sigma' and tracer == 'LRG':
-                    ball.tracers[tracer][key] = 10**hod_params[key]
-                else:
-                    ball.tracers[tracer][key] = hod_params[key]
+                # if key == 'sigma' and tracer == 'LRG':
+                #     ball.tracers[tracer][key] = 10**hod_params[key]
+                # else:
+                # print(key)
+                # print(hod_params[key][i])
+                ball.tracers[tracer][key] = hod_params[key][i]
             ball.tracers[tracer]['ic'] = 1
             if i == 0:
                 hod_dict = ball.run_hod(ball.tracers, ball.want_rsd, Nthread=nthreads, reseed=seed)
@@ -256,7 +291,7 @@ class LightconeHOD:
                     else:
                         hod_dict[tracer][key] = np.concatenate([hod_dict[tracer][key], hod_dict_i[tracer][key]])
             # positions_dict = self.get_positions(hod_dict, tracer)
-        self.format_catalog(hod_dict, save_fn, tracer, full_sky, apply_nz)
+        self.format_catalog(hod_dict, save_fn, tracer, full_sky, apply_nz,sim_type)
         if make_randoms:
             zmin = hod_dict[tracer]['Z'].min()
             zmax = hod_dict[tracer]['Z'].max()
@@ -325,28 +360,31 @@ class LightconeHOD:
         data = hod_dict[tracer]
         dmin, dmax = self.cosmo.comoving_radial_distance(self.zrange)
         volume = 4/3 * np.pi * (dmax**3 - dmin**3)
-        correction = 1 if full_sky else 8  # divide by 8 if only using a sky octant
+        correction = 1 # if full_sky else 8  # divide by 8 if only using a sky octant ### Xinyi: commented out since this is for base
         nbar = len(data['Z']) / (volume / correction)
         return nbar
 
-    def format_catalog(self, hod_dict, save_fn=False, tracer='LRG', full_sky=False, apply_nz=False):
+    def format_catalog(self, hod_dict, save_fn=False, tracer='LRG', full_sky=False, apply_nz=False,DESI_photo_nz=False,sim_type='base'):
         Ncent = hod_dict[tracer]['Ncent']
         hod_dict[tracer].pop('Ncent', None)
         is_central = np.zeros(len(hod_dict[tracer]['x']))
         is_central[:Ncent] += 1
         hod_dict[tracer]['is_cent'] = is_central
         hod_dict[tracer] = {k.upper():v  for k, v in hod_dict[tracer].items()}
-        self.recenter_box(hod_dict, tracer)
-        self.remove_outbounds(hod_dict, tracer)
+        self.recenter_box(hod_dict, tracer) # for base
+        self.remove_outbounds(hod_dict, tracer) # for base
         if full_sky: self.make_full_sky(hod_dict)
         self.get_sky_coordinates(hod_dict)
         self.drop_cartesian(hod_dict)
-        self.apply_zcut(hod_dict, self.zrange[0], self.zrange[1])
+       # self.apply_zcut(hod_dict, self.zrange[0], self.zrange[1])
         data_nbar = self.get_data_nbar(hod_dict, tracer, full_sky)
         self.logger.info(f'Raw data nbar: {data_nbar}' )
         if apply_nz:
-            nz_filename = f'/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/{tracer}_NGC_nz.txt'
-            self.apply_radial_mask(hod_dict, nz_filename, norm=1/data_nbar)
+           # nz_filename = f'/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/{tracer}_NGC_nz.txt'
+            if DESI_photo_nz:
+                nz_filename = f'/global/cfs/cdirs/desi/survey/catalogs/DA2/LSS/loa-v1/LSScats/v1.1/{tracer}_full_HPmapcut_nz.txt'
+            nz_filename = f'/global/cfs/cdirs/desi/survey/catalogs/DA2/LSS/loa-v1/LSScats/v1.1/BAO/blinded/{tracer}_NGC_nz.txt'
+            self.apply_radial_mask(hod_dict, nz_filename, sim_type) #removed 1/nbar norm
             self.logger.info(f'Downsampled data nbar: {self.get_data_nbar(hod_dict, tracer, full_sky)}' )
         if save_fn:
             table = Table(hod_dict[tracer])
@@ -417,22 +455,49 @@ class LightconeHOD:
         for key in randoms[tracer].keys():
             randoms[tracer][key] = randoms[tracer][key][zmask]
         if apply_nz:
-            nz_filename = f'/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/{tracer}_NGC_nz.txt'
+           # nz_filename = f'/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v1.5/{tracer}_NGC_nz.txt'
+            nz_filename = f'/global/cfs/cdirs/desi/survey/catalogs/DA2/LSS/loa-v1/LSScats/v1.1/BAO/blinded/{tracer}_NGC_nz.txt'
             self.apply_radial_mask(randoms, nz_filename)
         return randoms
 
     
-    def apply_radial_mask(self, hod_dict, nz_filename, norm=None, tracer='LRG'):
+    def apply_radial_mask(self, hod_dict, nz_filename, sim_type,norm=None, tracer='LRG'):
+        from cosmoprimo.fiducial import AbacusSummit
+        cosmo = AbacusSummit(0)
+        dis_dc = cosmo.comoving_radial_distance
         # example from https://github.com/cosmodesi/mockfactory/
-        from mockfactory import TabulatedRadialMask
+#        from mockfactory import TabulatedRadialMask
         self.logger.info(f'Applying radial mask from {nz_filename}.')
         # Load nz
         zbin_mid, n_z = np.genfromtxt(nz_filename, skip_header=3, usecols=(0, 3)).T
         # if norm is not None and 1/norm <= n_z.max():
         #     norm = None
-        mask_radial = TabulatedRadialMask(z=zbin_mid, nbar=n_z, interp_order=2, norm=norm)
+#        mask_radial = TabulatedRadialMask(z=zbin_mid, nbar=n_z, interp_order=3, norm=norm)
+#        for key in hod_dict[tracer].keys():
+#            hod_dict[tracer][key] = hod_dict[tracer][key][mask_radial(hod_dict[tracer]['Z'], seed=42)]
+        interped_nz = np.interp(hod_dict[tracer]['Z'],zbin_mid,n_z,left=0,right=0)
+
+        zbin_low = np.genfromtxt(nz_filename,skip_header=3,usecols=(1))
+        zbin_high = np.genfromtxt(nz_filename,skip_header=3,usecols=(2))
+        mock_N_in_zbins,zbins = np.histogram(hod_dict[tracer]['Z'],bins=zbin_low)
+
+        if sim_type == 'huge':
+            vol = 4.*np.pi/3.*(dis_dc(zbin_high)**3.-dis_dc(zbin_low)**3.) 
+        if sim_type == 'base':
+            vol = 4.*np.pi/3.*(dis_dc(zbin_high)**3.-dis_dc(zbin_low)**3.) * 1./8.
+        mock_n_in_zbins = mock_N_in_zbins / vol[:-1]
+        interped_nz_mock = np.interp(hod_dict[tracer]['Z'],zbin_mid[:-1],mock_n_in_zbins)
+
+        np.random.seed(43)
+
+        ran_arr = np.random.rand(len(hod_dict[tracer]['Z']))
+        nz_selected = ran_arr < (interped_nz / interped_nz_mock)
+        total_length = len(hod_dict[tracer]['Z'])
         for key in hod_dict[tracer].keys():
-            hod_dict[tracer][key] = hod_dict[tracer][key][mask_radial(hod_dict[tracer]['Z'], seed=42)]
+            hod_dict[tracer][key] = hod_dict[tracer][key][nz_selected]
+        print("DOWNSAMPLE: Selected {} out of {} galaxies.".format(len(hod_dict[tracer]['Z']), total_length), flush=True)
+
+
 
 
 # class CutskyHOD:
