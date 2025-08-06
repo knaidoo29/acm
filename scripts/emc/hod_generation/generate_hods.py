@@ -14,12 +14,13 @@ def get_hod_params(cosmo_idx=0):
     df.columns = list(df.columns.str.strip('# ').values)
     return df.to_dict('list')
 
-# hods = [466]
-hods = list(range(350))
-phases = list(range(1, 5))
+
+hods = [466]
+# hods = list(range(350))
+phases = list(range(0, 25))
 seeds = list(range(1))
 # cosmos = list(range(0, 5)) + list(range(13, 14)) + list(range(100, 127)) + list(range(130, 182))
-cosmos = list(range(1, 4))
+cosmos = list(range(1))
 
 redshift = 0.5
 
