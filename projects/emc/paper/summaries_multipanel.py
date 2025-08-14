@@ -7,8 +7,8 @@ from acm.data.io_tools import *
 import acm.observables.emc as emc
 from typing import List, Dict
 
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif')
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
 
 def get_data(
@@ -128,7 +128,7 @@ ax[0, 0].set_xscale("log")
 ax[0, 0].set_yscale("log")
 ax[0][0].set_xlabel(r"$r\,[h^{-1}{\rm Mpc}]$", fontsize=15)
 ax[0][0].set_ylabel(r"$w_p(r)$", fontsize=15)
-# ax[0][0].set_title(r'$\textrm{Projected 2PCF}$', fontsize=15)
+ax[0][0].set_title(r'$\textrm{Projected 2PCF}$', fontsize=15)
 
 # 2PCF multipoles
 statistic = "GalaxyCorrelationFunctionMultipoles"

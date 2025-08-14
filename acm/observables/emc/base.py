@@ -157,11 +157,7 @@ class BaseObservable(ABC):
     def selected_bin_idx(self):
         dimensions = list(self.coordinates.keys())
         original_shape = tuple(len(v) for v in self.coordinates.values())
-        
-        # Create array of original flattened indices (like your bin_idx)
         bin_indices = np.arange(np.prod(original_shape)).reshape(original_shape)
-        
-        # Apply same filtering as coordinates
         filtered_bin_indices = convert_to_summary(
             data=bin_indices,
             dimensions=dimensions,
