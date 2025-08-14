@@ -121,10 +121,10 @@ ax[1][1].set_xlabel(r'$\textrm{Coefficient index}$', fontsize=15)
 ax[1][1].set_ylabel(r'$(X_{\rm model} - X_{\rm data})/\sigma_{\rm data}$', fontsize=15)
 ax[1][1].set_title(r'$\textrm{Minimum Spanning Tree}$', fontsize=15)
 
-# Voxel Void-galaxy 2PCF
-statistic = 'VoxelVoidGalaxyCorrelationFunctionMultipoles'
+# VIDE Void-galaxy 2PCF
+statistic = 'VIDEVoidGalaxyCorrelationFunctionMultipoles'
 for ell in [0, 2]:
-    select_coordinates = {'multipoles': [ell]}
+    select_coordinates = {'multipoles': [ell], 'stack': [0]}
     sep, emulator_error, data_error = get_data(statistic)
     ax[2, 2].plot(sep, emulator_error/data_error, label=f'$\ell={ell}$')
 ax[2][2].set_xlabel(r'$s\,[h^{-1}{\rm Mpc}]$', fontsize=15)

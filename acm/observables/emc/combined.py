@@ -186,7 +186,7 @@ class CombinedObservable:
                 else:
                     return np.diag(np.diag(cov))
 
-    def get_covariance_matrix(self, divide_factor=64):
+    def get_covariance_matrix(self, divide_factor=64, nsim=None):
         """
         Covariance matrix of the combination of observables.
 
@@ -195,7 +195,8 @@ class CombinedObservable:
             to account for the volume difference between the small boxes and the target
             simulation.
         """
-        return np.cov(self.small_box_y.T) / divide_factor
+        sims = self.small_box_y if nsim is None else self.small_box_y[:nsim]
+        return np.cov(sims.T) / divide_factor
 
     def get_phase_matrix(self, divide_factor=64):
         """

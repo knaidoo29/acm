@@ -446,7 +446,7 @@ class BaseObservable(ABC):
                 select_filters=self.select_filters, slice_filters=self.slice_filters
             ).values.reshape(-1)
 
-    def get_covariance_matrix(self, divide_factor=64):
+    def get_covariance_matrix(self, divide_factor=64, nsim=None):
         """
         Covariance matrix of the combination of observables.
 
@@ -454,8 +454,13 @@ class BaseObservable(ABC):
             divide_factor (int): Divide the covariance matrix by this value
             to account for the volume difference between the small boxes and the target
             simulation.
+            nsim (int): Number of simulations to use for the covariance matrix.
+                If None, use all simulations.
+        Returns:
+            np.ndarray: Covariance matrix.
         """
-        cov = np.cov(self.small_box_y.T) / divide_factor
+        sims = self.small_box_y if nsim is None else self.small_box_y[:nsim]
+        cov = np.cov(sims.T) / divide_factor
         return np.atleast_2d(cov)
 
     def get_phase_matrix(self):
