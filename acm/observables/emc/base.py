@@ -142,6 +142,33 @@ class BaseObservable(ABC):
         ).values.reshape(-1)
 
     @property
+    def selected_coordinates(self):
+        dimensions = list(self.coordinates.keys())
+        dummy_data = np.zeros(tuple(len(v) for v in self.coordinates.values()))
+        return convert_to_summary(
+            data= dummy_data,
+            dimensions=dimensions,
+            coords = self.coordinates,
+            select_filters = self.select_filters,
+            slice_filters=self.slice_filters,
+        ).coords
+
+    @property
+    def selected_bin_idx(self):
+        dimensions = list(self.coordinates.keys())
+        original_shape = tuple(len(v) for v in self.coordinates.values())
+        bin_indices = np.arange(np.prod(original_shape)).reshape(original_shape)
+        filtered_bin_indices = convert_to_summary(
+            data=bin_indices,
+            dimensions=dimensions,
+            coords=self.coordinates,
+            select_filters=self.select_filters,
+            slice_filters=self.slice_filters,
+        )
+        
+        return filtered_bin_indices.values.flatten()
+
+    @property
     def small_box_indices(self):
         """
         Indices of the covariance samples, including variations in phase and HOD parameters.
@@ -188,8 +215,6 @@ class BaseObservable(ABC):
             data=diffsky_y, dimensions=dimensions, coords=coords,
             select_filters=self.select_filters, slice_filters=self.slice_filters
         ).values.reshape(-1)
-
-    # def test_set_indices(self):
 
 
     @property

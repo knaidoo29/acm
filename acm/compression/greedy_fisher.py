@@ -231,6 +231,14 @@ class GreedyFisher:
                 for bin_idx in bins:
                     if bin_idx in available_bins[stat]:
                         available_bins[stat].remove(bin_idx)
+                        selection_history.append({
+                            'statistic': stat,
+                            'bin_idx': bin_idx,
+                            'step': 'initial',
+                            'fisher_before': None,
+                            'fisher_after': None,
+                            'improvement': None
+                        })
             print(f"Starting with {sum(len(bins) for bins in selected_bins.values())} pre-selected bins")
             total_selected = sum(len(bins) for bins in selected_bins.values())
         else:
@@ -242,6 +250,7 @@ class GreedyFisher:
         # Track progress
         current_fisher = float('-inf')
         fisher_history = []
+        selection_history = []
         
         # Early stopping
         best_fisher = float('-inf')
@@ -278,8 +287,17 @@ class GreedyFisher:
             available_bins[best_stat].remove(actual_bin_idx)
             
             improvement = best_fisher_candidate - current_fisher
+            previous_fisher = current_fisher
             current_fisher = best_fisher_candidate
             fisher_history.append(current_fisher)
+            selection_history.append({
+                'statistic': best_stat,
+                'bin_idx': actual_bin_idx,
+                'step': total_selected + 1,
+                'fisher_before': previous_fisher,
+                'fisher_after': current_fisher,
+                'improvement': improvement
+            })
             total_selected += 1
             
             # Track best configuration for early stopping
@@ -306,7 +324,7 @@ class GreedyFisher:
                 print(f"Distribution: {distribution}")
                 print(f"Added {best_stat}:{actual_bin_idx} with improvement {improvement:.4f}")
         
-        return selected_bins, current_fisher, fisher_history
+        return selected_bins, current_fisher, fisher_history, selection_history
 
 def map_indices_after_deletion_numpy(original_length, delete_indices, select_indices):
     """Same as above but using numpy for efficiency."""
@@ -337,7 +355,7 @@ def run_greedy_fisher(statistics, max_bins=100, add_emulator_error=True,
         initial_selection_bins=initial_selection_bins,
     )
     
-    selected_bins, final_fisher, fisher_history = selector.greedy_selection(
+    selected_bins, final_fisher, fisher_history, selection_history = selector.greedy_selection(
         max_bins=max_bins,
         add_emulator_error=add_emulator_error, 
         add_inverse_correction=add_inverse_correction,
@@ -350,4 +368,4 @@ def run_greedy_fisher(statistics, max_bins=100, add_emulator_error=True,
     print(f"Total: {sum(len(bins) for bins in selected_bins.values())} bins")
     print(f"Final Fisher log-determinant: {final_fisher:.4f}")
     
-    return selected_bins, final_fisher, fisher_history
+    return selected_bins, final_fisher, fisher_history, selection_history
