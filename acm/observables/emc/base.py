@@ -273,7 +273,7 @@ class BaseObservable(ABC):
         return np.sqrt(chi2) / residuals.shape[-1]
 
     def get_emulator_error_matrix(self, select_mocks=None, diagonalize=True,
-        method: ['median', 'std'] = 'median'):
+        method: ['median', 'std'] = 'median', data_is_diffsky=False):
         """
         Get the covariance matrix of the emulator error.
         """
@@ -286,12 +286,14 @@ class BaseObservable(ABC):
         elif method == 'std':
             cov = np.cov(res.T)
         elif method == 'std_chi2_5sigma':
-            data_residuals = self.get_model_residuals_data(select_mocks=select_mocks)
+            data_residuals = self.get_model_residuals_data(select_mocks=select_mocks,
+                                                           data_is_diffsky=data_is_diffsky)
             chi2 = self.get_chi2(residuals=data_residuals,)
             mask = chi2 < 5.
             cov = np.cov(res[mask].T)
         elif method == 'std_chi2_weighted':
-            data_residuals = self.get_model_residuals_data(select_mocks=select_mocks)
+            data_residuals = self.get_model_residuals_data(select_mocks=select_mocks,
+                                                           data_is_diffsky=data_is_diffsky)
             chi2 = self.get_chi2(residuals=data_residuals,)
             weights = 1.0 / (1.0 + chi2)
             weights = weights / np.sum(weights)
@@ -338,7 +340,7 @@ class BaseObservable(ABC):
         return test_y - pred_y
 
 
-    def get_model_residuals_data(self, select_mocks=None):
+    def get_model_residuals_data(self, select_mocks=None, data_is_diffsky=False):
         """
         Calculate the residuals between the data and the test set of the Latin hypercube. 
         
@@ -365,7 +367,8 @@ class BaseObservable(ABC):
         n_samples = len( self.test_set_indices['cosmo_idx']) * len( self.test_set_indices['hod_idx'])
         test_x = test_x.reshape(n_samples, -1)
         test_y = test_y.reshape(n_samples, -1)
-        return test_y - self.lhc_y 
+        ref_y = self.diffsky_y() if data_is_diffsky else self.lhc_y
+        return test_y - ref_y
 
     def get_model_residuals_list(self):
         import numpy as np
