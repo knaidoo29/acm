@@ -116,22 +116,6 @@ if __name__ == '__main__':
         json.dump(all_fisher, f)
 
 
-    #  Fix lcdm, marginalised over hod
-    # bins_fixed_lcdm, fisher_fixed_lcdm, selection_history_fixed_lcdm = run_marginalised_greedy_fisher(
-    #     statistics,
-    #     max_bins=max_bins, 
-    #     fixed_parameters_idx=lcdm_param_idx,
-    #     nuisance_parameters_idx=hod_param_idx,
-    # )
-    # all_fisher = {
-    #     'fisher': fisher_fixed_lcdm,
-    #     'bins': bins_fixed_lcdm,
-    #     'selection_history': selection_history_fixed_lcdm,
-    # }
-    # with open(data_path / 'fixed_lcdm_marginalised_hod_v2.json', 'w') as f:
-    #     json.dump(all_fisher, f)
-
-
     bins_marg_lcdm, fisher_marg_lcdm, selection_history_marg_lcdm = run_marginalised_greedy_fisher(
         statistics,
         max_bins=max_bins, 
@@ -144,4 +128,18 @@ if __name__ == '__main__':
         'selection_history': selection_history_marg_lcdm,
     }
     with open(data_path / 'marginalised_hod_lcdm_v2.json', 'w') as f:
+        json.dump(all_fisher, f)
+
+    bins_hod, fisher_hod, selection_history_hod = run_marginalised_greedy_fisher(
+        statistics,
+        max_bins=max_bins, 
+        fixed_parameters_idx=blcdm_param_idx,
+        nuisance_parameters_idx=lcdm_param_idx,
+    )
+    all_fisher = {
+        'fisher': fisher_hod,
+        'bins': bins_hod,
+        'selection_history': selection_history_hod,
+    }
+    with open(data_path / 'hod_v2.json', 'w') as f:
         json.dump(all_fisher, f)
