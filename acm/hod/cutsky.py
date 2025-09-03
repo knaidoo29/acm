@@ -309,7 +309,7 @@ class CutskyHOD(BaseCutskyCatalog):
             self.logger.info('Load existing hod instead of generating new ones.')
         else:
             self.setup_hod(DM_DICT=DM_DICT)
-        self.keys_cutsky = ['RA', 'DEC', 'Z', 'RSDPosition', 'Distance', 'Position']
+        self.keys_cutsky = ['RA', 'DEC', 'Z', 'RSDPosition', 'Distance', 'Position', 'ID', 'IS_CENT']
 
     def setup_hod(self, DM_DICT: dict):
         """
@@ -356,7 +356,9 @@ class CutskyHOD(BaseCutskyCatalog):
                             tracer_density_mean=target_nbar)[self.tracer]
         pos = np.c_[hod_dict['X'], hod_dict['Y'], hod_dict['Z']]
         vel = np.c_[hod_dict['VX'], hod_dict['VY'], hod_dict['VZ']]
-        return pos.astype(np.float32), vel.astype(np.float32)
+        halo_id = hod_dict['ID']
+        is_cent = hod_dict['IS_CENT']
+        return pos.astype(np.float32), vel.astype(np.float32), halo_id, is_cent
 
     def load_hod(self, mock_path=None):
         """
@@ -437,20 +439,20 @@ class CutskyHOD(BaseCutskyCatalog):
                 box_positions, box_velocities = self.load_hod(mock_path=existing_hod_path)
             else:
                 ball  = self.balls[i]
-                box_positions, box_velocities = self._sample_hod(ball, hod_params, nthreads=nthreads,
+                box_positions, box_velocities, halo_id, is_cent = self._sample_hod(ball, hod_params, nthreads=nthreads,
                                                                  target_nbar=target_nbar, seed=seed)
             self.raw_nbar_snapshots.append( len(box_positions) / (self.boxsize**3) )
             # replicate the box along each axis to cover more volume
             pos_min, pos_max = self.get_reference_borders(zranges, region=region, release=release, custom_xyz_file=custom_xyz_file)
             shifts = self.get_box_shifts(pos_min, pos_max)
-            box_positions, box_velocities = self.get_box_replications(box_positions, box_velocities,
+            box_positions, box_velocities, halo_id, is_cent = self.get_box_replications(box_positions, box_velocities,
                                                                       pos_min, pos_max, target_nbar,
-                                                                      shifts=shifts)
+                                                                      shifts=shifts, halo_id=halo_id, is_cent=is_cent)
             box = mockfactory.BoxCatalog(data={'Position': box_positions, 'Velocity': box_velocities},
                                               position='Position', velocity='Velocity',
                                               boxsize=pos_max-pos_min, boxcenter=(pos_max+pos_min)/2,)
             cutsky_shell = self.box_to_cutsky(box=box, zmin=zranges[0], zmax=zranges[1], 
-                                          zrsd=zsnap, apply_rsd=True)
+                                          zrsd=zsnap, apply_rsd=True, halo_id=halo_id, is_cent=is_cent)
             for key in self.keys_cutsky:
                 self.catalog[key].extend(cutsky_shell[key])
             del box_positions, box_velocities, box, cutsky_shell
@@ -480,7 +482,7 @@ class CutskyHOD(BaseCutskyCatalog):
                     shifts.append([self.boxsize * np.array([i, j, k])])
         return shifts
 
-    def get_box_replications(self, position, velocity, pos_min, pos_max, target_nbar, shifts: list = None):
+    def get_box_replications(self, position, velocity, pos_min, pos_max, target_nbar, shifts: list = None, halo_id = None, is_cent=None):
         """
         Get the positions, velocities, and box centers of the replications of the simulations,
         obtained by applying the input shift values.
@@ -509,16 +511,22 @@ class CutskyHOD(BaseCutskyCatalog):
             shifts = self.get_box_shifts()
         new_pos = []
         new_vel = []
+        new_halo_id = []
+        new_is_cent = []
         for shift in shifts:
             temp_pos,temp_vel = self.get_pos_within_borders(position + shift, velocity,
                                                             pos_min, pos_max, target_nbar)
             new_pos.append(temp_pos)
             new_vel.append(temp_vel)
+            new_halo_id.append(halo_id)
+            new_is_cent.append(is_cent)
         new_pos = np.concatenate(new_pos)
         new_vel = np.concatenate(new_vel)
-        return new_pos, new_vel
+        new_halo_id = np.concatenate(new_halo_id)
+        new_is_cent = np.concatenate(is_cent)
+        return new_pos, new_vel, new_halo_id, is_cent
 
-    def box_to_cutsky(self, box, zmin: float, zmax: float, apply_rsd: bool = False, zrsd: float = None):
+    def box_to_cutsky(self, box, zmin: float, zmax: float, apply_rsd: bool = False, zrsd: float = None, halo_id=None, is_cent=None):
         """
         Convert a box catalog with cartesian positions and velocities to a cutsky catalog
         with sky coordinates and redshifts.
@@ -535,6 +543,8 @@ class CutskyHOD(BaseCutskyCatalog):
             Whether to apply RSD to the positions, by default False.
         zrsd : float, optional
             Redshift at which to evaluate the cosmology to apply the RSD, by default None.
+        halo_id: int array, optional
+            The Abacus halo IDs of the tracers
         Returns
         -------
         cutsky : dict
@@ -547,6 +557,10 @@ class CutskyHOD(BaseCutskyCatalog):
         pos = 'RSDPosition' if apply_rsd else 'Position'
         cutsky['Distance'], cutsky['RA'], cutsky['DEC'] = mockfactory.cartesian_to_sky(box[pos])
         cutsky['Z'] = d2r(cutsky['Distance'])
+        if halo_id is not None:
+            cutsky['ID'] = halo_id
+        if is_cent is not None:
+            cutsky['IS_CENT'] = is_cent
         cutsky = cutsky[(cutsky['Z'] >= zmin) & (cutsky['Z'] <= zmax)]
         return cutsky
 

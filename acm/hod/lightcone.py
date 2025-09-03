@@ -226,7 +226,7 @@ class LightconeHOD(CutskyHOD, BaseLightconeCatalog):
             self.config_file = Path(config_dir) /  'lightcone.yaml'
         self.setup_hod(DM_DICT)
         self.monte_carlo_sampling_count = 10000
-        self.keys_lightcone = ['RA', 'DEC', 'Z', 'RSDPosition', 'Distance', 'Position']
+        self.keys_lightcone = ['RA', 'DEC', 'Z', 'RSDPosition', 'Distance', 'Position', 'ID', 'IS_CENT']
 
     def init_lightcone(self):
         """Initialize the catalog dictionary."""
@@ -312,7 +312,7 @@ class LightconeHOD(CutskyHOD, BaseLightconeCatalog):
                 box_positions, box_velocities = self.load_hod(mock_path=existing_hod_path)
             else:
                 ball  = self.balls[i]
-                box_positions, box_velocities = self._sample_hod(ball, hod_params, nthreads=nthreads,
+                box_positions, box_velocities, halo_id, is_cent = self._sample_hod(ball, hod_params, nthreads=nthreads,
                                                                  target_nbar=None, seed=seed)
             #recenter box
             box_positions += 990
@@ -320,14 +320,16 @@ class LightconeHOD(CutskyHOD, BaseLightconeCatalog):
             mask = (box_positions[:,0]>0)*(box_positions[:,1]>0)*(box_positions[:,2]>0)
             box_positions = box_positions[mask]
             box_velocities = box_velocities[mask]
+            halo_id = halo_id[mask]
+            is_cent = is_cent[mask]
             if full_sky:
-                box_positions, box_velocities = self.make_full_sky(box_positions, box_velocities)
+                box_positions, box_velocities, halo_id, is_cent = self.make_full_sky(box_positions, box_velocities, halo_id, is_cent)
             
             box = mockfactory.BoxCatalog(data={'Position': box_positions, 'Velocity': box_velocities},
                                               position='Position', velocity='Velocity',
                                               boxsize=boxsize, boxcenter=[boxsize/2, boxsize/2, boxsize/2])
             lightcone_shell = self.box_to_cutsky(box=box, zmin=self.zrange[0], zmax=self.zrange[1], 
-                                          zrsd=zsnap, apply_rsd=True)
+                                          zrsd=zsnap, apply_rsd=True, halo_id = halo_id, is_cent=is_cent)
             for key in self.keys_lightcone:
                 self.catalog[key].extend(lightcone_shell[key])
             del box_positions, box_velocities, box, lightcone_shell
@@ -335,7 +337,7 @@ class LightconeHOD(CutskyHOD, BaseLightconeCatalog):
             self.catalog[key] = np.array(self.catalog[key])
         return self.catalog
                         
-    def make_full_sky(self, box_positions, box_velocities):
+    def make_full_sky(self, box_positions, box_velocities, halo_id, is_cent):
         x = box_positions[0]
         y = box_positions[1]
         z = box_positions[2]
@@ -366,8 +368,11 @@ class LightconeHOD(CutskyHOD, BaseLightconeCatalog):
                 np.c_[-x, -y, -z]
             ]
         )
+
+        halo_id = np.concatenate([halo_id,halo_id,halo_id,halo_id,halo_id,halo_id,halo_id,halo_id])
+        is_cent = np.concatenate([is_cent,is_cent,is_cent,is_cent,is_cent,is_cent,is_cent,is_cent])
         
-        return pos.T, vel.T
+        return pos.T, vel.T, halo_id, is_cent
 
     """
     def apply_angular_mask(self):
