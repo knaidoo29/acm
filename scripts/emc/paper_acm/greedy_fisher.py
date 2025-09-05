@@ -33,7 +33,7 @@ def run_marginalised_greedy_fisher(
 
 if __name__ == '__main__':
     max_bins = 200
-    data_path = Path('/pscratch/sd/c/cuesta/greedy_fisher')
+    data_path = Path('/pscratch/sd/e/epaillas/emc/greedy_fisher')
     fixed_parameters = ['omega_b']
     lcdm_parameters = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s']
     blcdm_parameters = ['nrun', 'N_ur', 'w0_fld', 'wa_fld']
@@ -49,6 +49,9 @@ if __name__ == '__main__':
         'tpcf': emc.GalaxyCorrelationFunctionMultipoles(
             select_mocks=select_mocks,
         ),
+        # 'pk': emc.GalaxyPowerSpectrumMultipoles(
+        #     select_mocks=select_mocks,
+        # ),
         'bk': emc.GalaxyBispectrumMultipoles(
             select_mocks=select_mocks,
         ),
@@ -58,32 +61,49 @@ if __name__ == '__main__':
         'minkowski': emc.MinkowskiFunctionals(
             select_mocks=select_mocks,
         ),
-        'dt_gv': emc.DTVoidGalaxyCorrelationFunctionMultipoles(
+        # 'dt_gv': emc.DTVoidGalaxyCorrelationFunctionMultipoles(
+        #     select_mocks=select_mocks,
+        # ),
+        'vide_gv': emc.VIDEVoidGalaxyCorrelationFunctionMultipoles(
+            select_mocks=select_mocks,
+        ),
+        'vide_vsf': emc.VIDEVoidSizeFunction(
             select_mocks=select_mocks,
         ),
         'wst': emc.WaveletScatteringTransform(
             select_mocks=select_mocks,
         ),
+        'mst': emc.MinimumSpanningTree(
+            select_mocks=select_mocks,
+        ),
+        'pdf': emc.GalaxyOverdensityPDF(
+            select_mocks=select_mocks,
+        ),
+        'cgf': emc.CumulantGeneratingFunction(
+            select_mocks=select_mocks,
+        ),
     }
+
+
     lhc_x_names = statistics['wp'].lhc_x_names
     blcdm_param_idx = get_parameter_idx(lhc_x_names, blcdm_parameters)
     lcdm_param_idx = get_parameter_idx(lhc_x_names, lcdm_parameters)
     hod_param_idx = get_parameter_idx(lhc_x_names, hod_parameters)
 
-    # # # Greedy optimised all
-    # bins, _, fisher, selection_history = run_greedy_fisher(
-    #    statistics,
-    #    max_bins=max_bins, 
-    #    add_emulator_error=True,
-    #    fixed_parameters_idx=None,
-    # )
-    # all_fisher = {
-    #    'fisher': fisher,
-    #    'bins': bins,
-    #    'selection_history': selection_history,
-    # }
-    # with open(data_path / 'all_v2.json', 'w') as f:
-    #    json.dump(all_fisher, f)
+    # Greedy optimised all
+    bins, _, fisher, selection_history = run_greedy_fisher(
+       statistics,
+       max_bins=max_bins, 
+       add_emulator_error=True,
+       fixed_parameters_idx=None,
+    )
+    all_fisher = {
+       'fisher': fisher,
+       'bins': bins,
+       'selection_history': selection_history,
+    }
+    with open(data_path / 'all_v3.5.json', 'w') as f:
+       json.dump(all_fisher, f)
 
     # # Greedy fixed blcdm
     # bins, _, fisher, selection_history_fixed = run_greedy_fisher(
@@ -100,48 +120,63 @@ if __name__ == '__main__':
     # with open(data_path / 'fixed_blcdm_v2.json', 'w') as f:
     #    json.dump(all_fisher, f)
 
-    #  Fix blcdm, marginalised over hod
-    bins_fixed_blcdm, fisher_fixed_blcdm, selection_history_fixed_blcdm = run_marginalised_greedy_fisher(
-        statistics,
-        max_bins=max_bins, 
-        fixed_parameters_idx=blcdm_param_idx,
-        nuisance_parameters_idx=hod_param_idx,
-    )
-    all_fisher = {
-        'fisher': fisher_fixed_blcdm,
-        'bins': bins_fixed_blcdm,
-        'selection_history': selection_history_fixed_blcdm,
-    }
-    with open(data_path / 'fixed_blcdm_marginalised_hod_v2.json', 'w') as f:
-        json.dump(all_fisher, f)
-
-
-    #  Fix lcdm, marginalised over hod
-    # bins_fixed_lcdm, fisher_fixed_lcdm, selection_history_fixed_lcdm = run_marginalised_greedy_fisher(
+    # #  Fix blcdm, marginalised over hod
+    # bins_fixed_blcdm, fisher_fixed_blcdm, selection_history_fixed_blcdm = run_marginalised_greedy_fisher(
     #     statistics,
     #     max_bins=max_bins, 
-    #     fixed_parameters_idx=lcdm_param_idx,
+    #     fixed_parameters_idx=blcdm_param_idx,
     #     nuisance_parameters_idx=hod_param_idx,
     # )
     # all_fisher = {
-    #     'fisher': fisher_fixed_lcdm,
-    #     'bins': bins_fixed_lcdm,
-    #     'selection_history': selection_history_fixed_lcdm,
+    #     'fisher': fisher_fixed_blcdm,
+    #     'bins': bins_fixed_blcdm,
+    #     'selection_history': selection_history_fixed_blcdm,
     # }
-    # with open(data_path / 'fixed_lcdm_marginalised_hod_v2.json', 'w') as f:
+    # with open(data_path / 'fixed_blcdm_marginalised_hod_v3.5.json', 'w') as f:
     #     json.dump(all_fisher, f)
 
 
-    bins_marg_lcdm, fisher_marg_lcdm, selection_history_marg_lcdm = run_marginalised_greedy_fisher(
-        statistics,
-        max_bins=max_bins, 
-        fixed_parameters_idx=None,
-        nuisance_parameters_idx=hod_param_idx + lcdm_param_idx,
-    )
-    all_fisher = {
-        'fisher': fisher_marg_lcdm,
-        'bins': bins_marg_lcdm,
-        'selection_history': selection_history_marg_lcdm,
-    }
-    with open(data_path / 'marginalised_hod_lcdm_v2.json', 'w') as f:
-        json.dump(all_fisher, f)
+    # #  Fix lcdm, marginalised over hod
+    # # bins_fixed_lcdm, fisher_fixed_lcdm, selection_history_fixed_lcdm = run_marginalised_greedy_fisher(
+    # #     statistics,
+    # #     max_bins=max_bins, 
+    # #     fixed_parameters_idx=lcdm_param_idx,
+    # #     nuisance_parameters_idx=hod_param_idx,
+    # # )
+    # # all_fisher = {
+    # #     'fisher': fisher_fixed_lcdm,
+    # #     'bins': bins_fixed_lcdm,
+    # #     'selection_history': selection_history_fixed_lcdm,
+    # # }
+    # # with open(data_path / 'fixed_lcdm_marginalised_hod_v2.json', 'w') as f:
+    # #     json.dump(all_fisher, f)
+
+
+    # bins_marg_lcdm, fisher_marg_lcdm, selection_history_marg_lcdm = run_marginalised_greedy_fisher(
+    #     statistics,
+    #     max_bins=max_bins, 
+    #     fixed_parameters_idx=None,
+    #     nuisance_parameters_idx=hod_param_idx + lcdm_param_idx,
+    # )
+    # all_fisher = {
+    #     'fisher': fisher_marg_lcdm,
+    #     'bins': bins_marg_lcdm,
+    #     'selection_history': selection_history_marg_lcdm,
+    # }
+    # with open(data_path / 'marginalised_hod_lcdm_v3.5.json', 'w') as f:
+    #     json.dump(all_fisher, f)
+
+
+    # bins_hod, fisher_hod, selection_history_hod = run_marginalised_greedy_fisher(
+    #     statistics,
+    #     max_bins=max_bins, 
+    #     fixed_parameters_idx=blcdm_param_idx,
+    #     nuisance_parameters_idx=lcdm_param_idx,
+    # )
+    # all_fisher = {
+    #     'fisher': fisher_hod,
+    #     'bins': bins_hod,
+    #     'selection_history': selection_history_hod,
+    # }
+    # with open(data_path / 'hod_v3.5.json', 'w') as f:
+    #     json.dump(all_fisher, f)
