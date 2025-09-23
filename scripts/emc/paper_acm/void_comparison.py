@@ -17,24 +17,27 @@ params = ['omega_cdm', 'sigma8_m', 'n_s']
 # params = ['A_cen', 'A_sat', 'B_cen', 'B_sat']
 
 stats = [
-    'vide_vsf_10-80_5',
+    # 'vide_vsf_rsd',
     'vide_voids',
-    'voxel_voids',
-    'dsc_pk_q0',
-    'dt_gv',
+    'vide_gv',
+    # 'voxel_voids',
+    # 'dsc_pk_q0',
+    # 'dt_gv',
 ]
 # labels = [r'$P ^{\rm DSC, 1}_\ell(k)$', r'$\xi^{\rm DT}_\ell(s)$']
 labels = [
-    'VIDE void size function',
-    r'VIDE void density profile',
-    r'Voxel void-galaxy CCF',
-    r'DSC $Q_0$-galaxy CCF',
-    r'DT void-galaxy CCF',
+    # 'VIDE void size function',
+    r'Real-space VIDE monopole',
+    r'Redshift-space VIDE multipoles',
+    # r'Voxel void-galaxy CCF',
+    # r'Density split void-galaxy CCF',
+    # r'DT void-galaxy CCF',
 ]
 
 for stat, label in zip(stats, labels):
 
-    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/jun28/c000_hod030/LCDM_baseHOD/'
+    # data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/jun28/c000_hod030/LCDM_baseHOD/'
+    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/aug11/c000_hod030/cosmo-base_hod-base-VB-AB-s/'
     data_fn = Path(data_dir) / f"chain_number_density+{stat}.npy"
     chain = Chain.load(data_fn)
     samples = Chain.to_getdist(chain, add_derived=True)
@@ -76,5 +79,6 @@ g.triangle_plot(
 
 
 # plt.savefig('void_comparison.png', dpi=300, bbox_inches='tight')
-plt.savefig('void_comparison.pdf', bbox_inches='tight')
+# plt.savefig('void_comparison.pdf', bbox_inches='tight')
+plt.savefig('VIDE_comparison.pdf', bbox_inches='tight')
 # plt.savefig('summaries_omegam_sigma8.pdf', bbox_inches='tight')

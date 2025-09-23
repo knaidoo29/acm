@@ -125,3 +125,33 @@ class DTVoidGalaxyCorrelationFunctionMultipoles(BaseObservable):
             s, multipoles = data(ells=(0, 2), return_sep=True)
             y.append(np.concatenate(multipoles))
         return s, np.array(y)
+
+    def create_diffsk_y(self):
+        """
+        Create the output features for the emulator (the galaxy correlation function multipoles).
+        """
+        import numpy as np
+        from pathlib import Path
+        from pycorr import TwoPointCorrelationFunction
+        self.logger.info('Creating Diffsky y for the DT void-galaxy correlation function multipoles.')
+        base_dir = f'/pscratch/sd/d/dforero/projects/ac_emc/data/data_vectors/diffsky/unit/dtfe6/tpcf/z0.5'
+        for phase in [1, 2]:
+            for sample in ['mass', 'mass_conc']:
+                data_fn = f"{base_dir}/gv_tpcf_galsampled_diffsky_mock_67120_fixedAmp_{phase:03}_{sample}_v0.3.npy"
+                data = TwoPointCorrelationFunction.load(data_fn)[::4].select((0, 150))
+                s, multipoles = data(ells=(0, 2), return_sep=True)
+                save_dir = Path('/pscratch/sd/e/epaillas/emc/v1.1/diffsky/data_vectors/')
+                save_fn = save_dir / f'galsampled_67120_fixedAmp_{phase:03}_{sample}_v0.3/dt_gv.npy'
+                cout = {'s': s, 'diffsky_y': np.concatenate(multipoles)}
+                np.save(save_fn, cout)
+        return
+
+
+if __name__ == '__main__':
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    dt_gv = DTVoidGalaxyCorrelationFunctionMultipoles()
+    dt_gv.create_diffsk_y()
+    # Uncomment the following line to create the small box y
+    # s, y = dt_gv.create_small_box_y()
+    # print(s, y.shape)

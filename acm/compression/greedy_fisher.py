@@ -86,7 +86,8 @@ class GreedyFisher:
                 )
 
             data['covariance_simulations'][stat_str] = statistic.small_box_y
-            data['emulator_error_matrices'][stat_str] = statistic.get_emulator_error_matrix(method='std_chi2_5sigma')
+            # data['emulator_error_matrices'][stat_str] = statistic.get_emulator_error_matrix(method='std_chi2_sigma', nsigma=5)
+            data['emulator_error_matrices'][stat_str] = statistic.get_emulator_error_matrix(method='std_chi2_weighted')
             
         return data
     

@@ -37,15 +37,27 @@ legend_labels = []
 params = ['w0_fld', 'wa_fld']
 # params = ['A_cen', 'A_sat', 'B_cen', 'B_sat']
 
-cosmos = [0, 2, 178]
-hods = [30, 13, 0]
+# cosmos = [0, 2, 178]
+# hods = [30, 13, 0]
+
+cosmos = [0, 2]
+hods = [30, 13]
 
 for cosmo_idx, hod_idx in zip(cosmos, hods):
-    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/optimal/apr11/c{cosmo_idx:03}_hod{hod_idx:03}/w0wa_nrun_Nur/'
-    data_fn = Path(data_dir) / 'chain_number_density+minkowski_apr11+wp+tpcf+bk+dsc_pk+wst_apr11+dt_gv.npy'
+    # data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/optimal/apr11/c{cosmo_idx:03}_hod{hod_idx:03}/w0wa_nrun_Nur/'
+    # data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/optimal/apr11/c{cosmo_idx:03}_hod{hod_idx:03}/w0wa_nrun_Nur/'
+    # data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/diffsky/aug11/greedy/galsampled_67120_fixedAmp_mean_mass_conc_v0.3/cosmo-base_hod-base-VB-AB-CB-s/'
+    # data_fn = Path(data_dir) / 'chain_number_density+minkowski_apr11+wp+tpcf+bk+dsc_pk+wst_apr11+dt_gv.npy'
+
+    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/aug25/greedy-bLCDM/c{cosmo_idx:03}_hod{hod_idx:03}/cosmo-base-w0-wa_hod-base-VB-AB-CB-s/'
+    data_fn = Path(data_dir) / 'chain_number_density+minkowski+wp+tpcf+bk+dsc_pk+wst+vide_gv+vide_vsf_rsd+mst+pdf+cgf.npy'
+    # data_fn = Path(data_dir) / 'chain_number_density+minkowski+wp+tpcf+bk+dsc_pk+wst+vide_gv+pdf.npy'
+
     # data_fn = Path(data_dir) / 'chain_number_density+minkowski_apr11+wp+tpcf+pk+bk+dsc_pk+wst_apr11+dt_gv+voxel_voids+pdf_r10+cgf_r10.npy'
     chain = Chain.load(data_fn)
-    samples = Chain.to_getdist(chain, add_derived=False)
+    samples = Chain.to_getdist(chain, add_derived=False,
+    # settings={'fine_bins_2D': 128, 'smooth_scale_1D': 0.22, 'smooth_scale_2D': 0.5},
+    )
     chains.append(samples)
     legend_labels.append(rf'\textrm{{Greedy comb.~(c{cosmo_idx:03d})}}')
 
@@ -60,8 +72,8 @@ for cosmo_idx, hod_idx in zip(cosmos, hods):
 # legend_labels.append(r'$\textrm{Prior}$')
 
 
-# chains.append(desi_d5_cmb)
-# legend_labels.append(r'$\textrm{BAO+CMB+SNe}$')
+chains.append(desi_d5_cmb)
+legend_labels.append(r'$\textrm{BAO+CMB+SNe}$')
 
 markers = {
     'w0_fld': [AbacusSummit(cosmo_idx)['w0_fld'] for cosmo_idx in cosmos],
@@ -139,5 +151,5 @@ g.fig.axes[1].axvline(-0.7, color=colors[2], linestyle='--', linewidth=1.0)
 g.fig.axes[2].axvline(0.0, color=colors[1], linestyle='--', linewidth=1.0)
 g.fig.axes[2].axvline(-0.5, color=colors[2], linestyle='--', linewidth=1.0)
 
-plt.savefig('contours_cosmologies_w0wa.png', dpi=300, bbox_inches='tight')
-plt.savefig('contours_cosmologies_w0wa.pdf', bbox_inches='tight')
+plt.savefig('contours_cosmologies_w0wa_v3.5.png', dpi=300, bbox_inches='tight')
+plt.savefig('contours_cosmologies_w0wa_v3.5.pdf', bbox_inches='tight')

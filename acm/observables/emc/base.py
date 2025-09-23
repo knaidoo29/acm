@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from sunbird.data.data_utils import convert_to_summary
+from scipy.stats import chi2, norm
 from .paths import emc_paths
 from pathlib import Path
 import numpy as np
@@ -266,14 +267,42 @@ class BaseObservable(ABC):
         #     select_filters=self.select_filters, slice_filters=self.slice_filters
         # ).values.reshape(-1)
 
-    def get_chi2(self, residuals):
-        covariance_data = self.get_covariance_matrix()
+    def get_chi2(self, residuals, divide_factor=64):
+        covariance_data = self.get_covariance_matrix(divide_factor=divide_factor)
         precision_data = np.linalg.inv(covariance_data)
         chi2 = np.einsum('ij,jk,ik->i', residuals, precision_data, residuals)
-        return np.sqrt(chi2) / residuals.shape[-1]
+        return chi2
+
+    def chi2_to_sigma(self, chi2_val, dof, two_sided=True):
+        """
+        Convert a chi-square statistic to an equivalent Gaussian significance (sigma).
+        
+        Parameters
+        ----------
+        chi2_val : float
+            Observed chi-square value.
+        dof : int
+            Degrees of freedom.
+        two_sided : bool, optional
+            If True, return the two-sided Gaussian sigma (default).
+            If False, return the one-sided significance.
+
+        Returns
+        -------
+        sigma : float
+            Equivalent Gaussian significance in units of sigma.
+        """
+        # Survival function gives p = P(chi2 >= chi2_val)
+        p_val = chi2.sf(chi2_val, dof)
+        if two_sided:
+            # For two-sided, halve the p-value before converting
+            sigma = norm.isf(p_val / 2.0)
+        else:
+            sigma = norm.isf(p_val)
+        return sigma
 
     def get_emulator_error_matrix(self, select_mocks=None, diagonalize=True,
-        method: ['median', 'std'] = 'median', data_is_diffsky=False):
+        method: ['median', 'std'] = 'median', nsigma=5, data_is_diffsky=False):
         """
         Get the covariance matrix of the emulator error.
         """
@@ -285,11 +314,14 @@ class BaseObservable(ABC):
             return np.diag(error ** 2)
         elif method == 'std':
             cov = np.cov(res.T)
-        elif method == 'std_chi2_5sigma':
+        elif method == 'std_chi2_sigma':
             data_residuals = self.get_model_residuals_data(select_mocks=select_mocks,
                                                            data_is_diffsky=data_is_diffsky)
-            chi2 = self.get_chi2(residuals=data_residuals,)
-            mask = chi2 < 5.
+            divide_factor = 8 if data_is_diffsky else 64
+            chi2 = self.get_chi2(residuals=data_residuals, divide_factor=divide_factor)
+            sigmas = self.chi2_to_sigma(chi2, dof=res.shape[-1], two_sided=False)
+            mask = sigmas < nsigma
+            print(f"{self.stat_name}: Fraction of mocks discarded due to high chi2: {np.sum(~mask)}/{len(mask)}")
             cov = np.cov(res[mask].T)
         elif method == 'std_chi2_weighted':
             data_residuals = self.get_model_residuals_data(select_mocks=select_mocks,

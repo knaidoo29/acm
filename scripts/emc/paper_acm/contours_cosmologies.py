@@ -17,14 +17,18 @@ legend_labels = []
 params = ['omega_cdm', 'sigma8_m']
 # params = ['A_cen', 'A_sat', 'B_cen', 'B_sat']
 
+# cosmos = [1, 2, 3, 4]
+# hods = [50, 13, 44, 0]
+
 cosmos = [1, 2, 3, 4]
 hods = [50, 13, 44, 0]
 
 
 for cosmo_idx, hod_idx in zip(cosmos, hods):
-    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/greedy/jul14/c{cosmo_idx:03}_hod{hod_idx:03}/LCDM/'
+    data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/abacus/aug25/greedy/c{cosmo_idx:03}_hod{hod_idx:03}/cosmo-base_hod-base-VB-AB-CB-s/'
     # data_fn = Path(data_dir) / 'chain_number_density+minkowski_apr11+wp+tpcf+bk+dsc_pk+wst_apr11+dt_gv.npy'
-    data_fn = Path(data_dir) / 'chain_number_density+minkowski+wp+tpcf+bk+dsc_pk+wst+dt_gv.npy'
+    # data_fn = Path(data_dir) / 'chain_number_density+minkowski+wp+tpcf+bk+dsc_pk+wst+dt_gv.npy'
+    data_fn = Path(data_dir) / 'chain_number_density+minkowski+wp+tpcf+bk+dsc_pk+wst+vide_gv+pdf+cgf.npy'
     # data_fn = Path(data_dir) / 'chain_number_density+minkowski_apr11+wp+tpcf+pk+bk+dsc_pk+wst_apr11+dt_gv+voxel_voids+pdf_r10+cgf_r10.npy'
     chain = Chain.load(data_fn)
     samples = Chain.to_getdist(chain, add_derived=True)
@@ -87,5 +91,5 @@ for i, cosmo_idx in enumerate(cosmos):
         linewidths=1.0,
     )
 
-plt.savefig('contours_cosmologies_v2.png', dpi=300, bbox_inches='tight')
-plt.savefig('contours_cosmologies_v2.pdf', bbox_inches='tight')
+plt.savefig('contours_cosmologies_v3.5.png', dpi=300, bbox_inches='tight')
+plt.savefig('contours_cosmologies_v3.5.pdf', bbox_inches='tight')

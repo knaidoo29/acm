@@ -68,3 +68,18 @@ class VIDEVoidGalaxyCorrelationFunctionMultipoles(BaseObservable):
     @property
     def model_fn(self):
         return f'/pscratch/sd/e/epaillas/emc/v1.1/trained_models/best/VIDEVoidGalaxyCorrelationFunctionMultipoles/last.ckpt'
+
+    def create_diffsky_y(self):
+        import numpy as np
+        from pathlib import Path
+        s = np.load('/global/u1/e/epaillas/vide_data/diffsky_x_values_Mpc_units.npy')
+        data_fn = '/global/u1/e/epaillas/vide_data/diffsky_stacked_multipoles_Mpc_units.npy'
+        data = np.load(data_fn)
+        base_dir = Path('/pscratch/sd/e/epaillas/emc/v1.1/diffsky/data_vectors/')
+        idx = 0
+        for phase in [1, 2]:
+            for sample in ['mass', 'mass_conc']:
+                y = data[idx]
+                save_fn = base_dir / f'galsampled_67120_fixedAmp_{phase:03}_{sample}_v0.3/vide_gv.npy'
+                np.save(save_fn, {'s': s, 'diffsky_y': y})
+                idx += 1

@@ -66,3 +66,18 @@ class VIDEVoidSizeFunction(BaseObservable):
     @property
     def model_fn(self):
         return f'/pscratch/sd/e/epaillas/emc/v1.1/trained_models/best/VIDEVoidSizeFunction_rsd/last.ckpt'
+
+    def create_diffsky_y(self):
+        import numpy as np
+        from pathlib import Path
+        s = np.load('/global/u1/e/epaillas/vide_data/void_size_functions_all_cosmologies_HODs0_99_10-80_5Mpc_bin_centers.npy')
+        data_fn = '/global/u1/e/epaillas/vide_data/diffsky_all_vsfs__10-80_5Mpc.npy'
+        data = np.load(data_fn)
+        base_dir = Path('/pscratch/sd/e/epaillas/emc/v1.1/diffsky/data_vectors/')
+        idx = 0
+        for phase in [1, 2]:
+            for sample in ['mass', 'mass_conc']:
+                y = data[idx]
+                save_fn = base_dir / f'galsampled_67120_fixedAmp_{phase:03}_{sample}_v0.3/vide_vsf_rsd.npy'
+                np.save(save_fn, {'s': s, 'diffsky_y': y})
+                idx += 1

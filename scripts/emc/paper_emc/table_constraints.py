@@ -11,13 +11,12 @@ plt.rc('font', family='serif')
 
 base_dir = Path('/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/diffsky/')
 
-def get_samples(statistics, date='apr7'):
-    # data_dir = f'/global/cfs/cdirs/desicollab/users/epaillas/acm/fits_emc/diffsky/final/galsampled_67120_fixedAmp_001_mass_conc_v0.3/{model}'
+def get_samples(statistics, date='aug25'):
     if statistics == 'greedy':
-        data_dir = base_dir / f'aug11/greedy/galsampled_67120_fixedAmp_mean_{diffsky_sampling}_v0.3/cosmo-base_hod-{hod_model}/'
-        data_fn = Path(data_dir) / f"chain_number_density+minkowski+wp+tpcf+bk+dsc_pk+wst+dt_gv.npy"
+        data_dir = base_dir / f'{date}/greedy/galsampled_67120_fixedAmp_mean_{diffsky_sampling}_v0.3/cosmo-base_hod-{hod_model}/'
+        data_fn = Path(data_dir) / f"chain_number_density+minkowski+wp+tpcf+bk+dsc_pk+wst+vide_gv+pdf+cgf.npy"
     else:
-        data_dir = base_dir / f'aug11/galsampled_67120_fixedAmp_mean_{diffsky_sampling}_v0.3/cosmo-base_hod-{hod_model}/'
+        data_dir = base_dir / f'{date}/galsampled_67120_fixedAmp_mean_{diffsky_sampling}_v0.3/cosmo-base_hod-{hod_model}/'
         data_fn = Path(data_dir) / f"chain_number_density+{statistics}.npy"
     chain = Chain.load(data_fn)
     samples = Chain.to_getdist(chain, add_derived=True)
@@ -31,7 +30,7 @@ def get_samples(statistics, date='apr7'):
     return samples, labels, markers
 
 
-diffsky_sampling = 'mass_conc'
+diffsky_sampling = 'mass'
 hod_model = 'base-VB-AB-CB-s'
 
 params_lcdm = ['omega_cdm', 'sigma8_m', 'n_s']
@@ -47,6 +46,7 @@ stats = [
     'dt_gv',
     'vide_gv',
     'vide_vsf_rsd',
+    'mst',
     'cgf',
     'pdf',
     'greedy',
@@ -62,6 +62,7 @@ labels = [
     r'DT void-galaxy CCF',
     r'VIDE void-galaxy CCF',
     r'VIDE void size function',
+    r'Minimum Spanning Tree'
     r'Cumulant generating function',
     r'Overdensity PDF',
     r'Greedy combination',
@@ -70,7 +71,7 @@ labels = [
 table = []
 table.append([r'$\bm{\Lambda}$\textbf{CDM}'])
 for stat, label in zip(stats, labels):
-    samples, param_labels, markers = get_samples(stat, date='apr22')
+    samples, param_labels, markers = get_samples(stat, date='aug25')
     mean = np.array([samples[param].mean() for param in params_lcdm])
     std = np.array([samples[param].std() for param in params_lcdm])
     bias = [(markers[param] - mean[i])/std[i] for i, param in enumerate(params_lcdm)]

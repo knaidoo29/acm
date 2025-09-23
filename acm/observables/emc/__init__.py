@@ -1,6 +1,7 @@
 from .number_density import GalaxyNumberDensity
 from .projected_tpcf import GalaxyProjectedCorrelationFunction
 from .tpcf import GalaxyCorrelationFunctionMultipoles
+from .tpcf_ap import APInfusedGalaxyCorrelationFunctionMultipoles
 from .power_spectrum import GalaxyPowerSpectrumMultipoles
 from .density_split_correlation import DensitySplitCorrelationFunctionMultipoles
 from .density_split_power import DensitySplitPowerSpectrumMultipoles

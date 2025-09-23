@@ -24,6 +24,15 @@ def get_data(statistic, return_model=True, select_coordinates={}, slice_coordina
         return sep, data_y, error, model
     return sep, data_y, error
 
+def read_greedy_bins():
+    bins_dir = '/pscratch/sd/c/cuesta/greedy_fisher/'
+    bins_fn = Path(bins_dir) / 'fixed_blcdm_marginalised_hod.json'
+    with open(bins_fn, 'r') as f:
+        selected_bins = json.load(f)['bins']
+
+
+greedy_bins = read_greedy_bins()
+
 
 fig, ax = plt.subplots(3, 4, figsize=(14, 10))
 

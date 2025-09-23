@@ -77,3 +77,81 @@ class MinimumSpanningTree(BaseObservable):
             data=error, dimensions=dimensions, coords=coords,
             select_filters=select_filters, slice_filters=slice_filters
         ).values.reshape(-1)
+
+    def create_diffsky_y(self):
+        import numpy as np
+        from pathlib import Path
+        smoothing = '3p0'
+        path = '/pscratch/sd/k/knaidoo/ACM/MockChallenge/data/'
+        data = np.load(path + 'mst_diffsky_data_with_smoothing_%s_Npt_10.npz' % smoothing)
+        vecs_diffsky = data['data'] # same as before but now for the diffsky data
+        which_diffsky = data['which_diffskys'] # the diffsky names
+        base_dir = Path('/pscratch/sd/e/epaillas/emc/v1.1/diffsky/data_vectors/')
+        for phase in [1, 2]:
+            for sample in ['mass', 'mass_conc']:
+                idx = list(which_diffsky).index(f'67120_fixedAmp_{phase:03}_{sample}') 
+                y = vecs_diffsky[idx]
+                print(y)
+                save_fn = base_dir / f'galsampled_67120_fixedAmp_{phase:03}_{sample}_v0.3/mst.npy'
+                np.save(save_fn, {'bin_idx': np.arange(len(y)), 'diffsky_y': y})
+
+    def create_lhc(self, cosmos=None, n_hod=350):
+        """
+        Create the Latin hypercube samples for the emulator (both input and output features).
+        """
+        import numpy as np
+        x, x_names = self.create_lhc_x(cosmos=cosmos, n_hod=n_hod)
+        bin_idx, y = self.create_lhc_y(cosmos=cosmos, n_hod=n_hod)
+        cout = {'bin_idx': bin_idx, 'lhc_x': x, 'lhc_x_names': x_names, 'lhc_y': y}
+        save_fn = '/pscratch/sd/e/epaillas/emc/v1.1/abacus/training_sets/cosmo+hod/mst.npy'
+        np.save(save_fn, cout)
+        return
+
+    def create_lhc_x(self, cosmos=None, n_hod=350):
+        import pandas
+        import numpy as np
+        if cosmos is None:
+            cosmos = list(range(0, 5)) + list(range(13, 14)) + list(range(100, 127)) + list(range(130, 182))
+        lhc_x = []
+        for cosmo_idx in cosmos:
+            data_dir = '/pscratch/sd/e/epaillas/emc/cosmo+hod_params/'
+            data_fn = data_dir + f'AbacusSummit_c{cosmo_idx:03}.csv'
+            lhc_x_i = pandas.read_csv(data_fn)
+            lhc_x_names = list(lhc_x_i.columns)
+            lhc_x_names = [name.replace(' ', '').replace('#', '') for name in lhc_x_names]
+            lhc_x.append(lhc_x_i.values[:n_hod, :])
+        lhc_x = np.concatenate(lhc_x)
+        return lhc_x, lhc_x_names
+
+    def create_lhc_y(self, cosmos=None, n_hod=350):
+        import numpy as np
+        if cosmos is None:
+            cosmos = list(range(0, 5)) + list(range(13, 14)) + list(range(100, 127)) + list(range(130, 182))
+        smoothing = '0p0'
+        path = '/pscratch/sd/k/knaidoo/ACM/MockChallenge/data/'
+        data = np.load(path + 'mst_emu_data_with_smoothing_%s_Npt_10.npz' % smoothing)
+        aind = data['aind'] # abacus simulation index
+        hind = data['hind'] # HOD index
+        vecs_emu = data['data'] # same as before but now for the emulator data vectors.
+        y = []
+        for cosmo_idx in cosmos:
+            for hod_idx in range(n_hod):
+                if (cosmo_idx, hod_idx) in zip(aind, hind):
+                    y.append(vecs_emu[list(zip(aind, hind)).index((cosmo_idx, hod_idx))])
+                else:
+                    y.append(np.zeros_like(vecs_emu[0]))
+        bin_idx = np.arange(len(vecs_emu[0]))
+        return bin_idx, np.array(y)
+
+    def create_small_box_y(self):
+        import numpy as np
+        smoothing = '0p0' # or '3p0'
+        path = '/pscratch/sd/k/knaidoo/ACM/MockChallenge/data/'
+        data = np.load(path + 'mst_cov_data_with_smoothing_%s_Npt_10.npz' % smoothing)
+        hind = data['hind'] # covariance HOD index
+        vecs_cov = data['data'] # arrays of vectors, so vecs_cov[0] is the first array and so on.
+        bin_idx = np.arange(len(vecs_cov[0]))
+        cout = {'bin_idx': bin_idx, 'cov_y': vecs_cov}
+        save_fn = '/pscratch/sd/e/epaillas/emc/v1.1/abacus/covariance_sets/small_box/mst.npy'
+        np.save(save_fn, cout)
+        return
