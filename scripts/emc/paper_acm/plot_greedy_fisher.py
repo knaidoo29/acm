@@ -3,11 +3,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
+<<<<<<< HEAD
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
 data_path = Path('/pscratch/sd/e/epaillas/emc/greedy_fisher')
 # data_path = Path('/pscratch/sd/c/cuesta/greedy_fisher')
+=======
+data_path = Path('/pscratch/sd/c/cuesta/greedy_fisher')
+>>>>>>> f2dbb8a50f6afaed0175d732849a07c6ce3e2ade
 
 
 def get_fisher_per_statistic(fisher_dict, normalize=True,):
@@ -86,7 +90,6 @@ fisher_per_statistic_blcdm = get_fisher_per_statistic(greedy_blcdm)
 fisher_per_statistic_hod = get_fisher_per_statistic(greedy_hod)
 fisher_per_statistic_all = get_fisher_per_statistic(greedy_all)
 
-
 labels = { 
     'wp': 'Projected 2PCF',
     'tpcf': '2PCF',
@@ -100,14 +103,12 @@ labels = {
     'mst': 'M. Spanning Tree',
     'pdf': 'Overdensity PDF',
     'cgf': 'Cumulant GF',
-
 }
 
 
 stats = [labels[stat] for stat in list(fisher_per_statistic_lcdm.keys())]
 
 x = np.arange(len(stats))
-# width = 0.25
 width = 0.18
 
 fig, ax = plt.subplots(figsize=(8, 4))
