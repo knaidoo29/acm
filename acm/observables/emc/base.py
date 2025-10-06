@@ -199,7 +199,7 @@ class BaseObservable(ABC):
             data=small_box_y, dimensions=dimensions, coords=coords,
             select_filters=self.select_filters, slice_filters=self.slice_filters
         )
-        small_box_y = small_box_y.sel(phase_idx= [i for i in list(range(1786))])
+        # small_box_y = small_box_y.sel(phase_idx= [i for i in list(range(1786))])
         return small_box_y.values.reshape(len(small_box_y), -1)
 
     def diffsky_y(self, phase_idx=1, sampling='mass_conc'):
@@ -301,8 +301,8 @@ class BaseObservable(ABC):
             sigma = norm.isf(p_val)
         return sigma
 
-    def get_emulator_error_matrix(self, select_mocks=None, diagonalize=True,
-        method: ['median', 'std'] = 'median', nsigma=5, data_is_diffsky=False):
+    def get_emulator_error_matrix(self, select_mocks=None, diagonalize=False,
+        method: ['median', 'std'] = 'std', nsigma=5, data_is_diffsky=False):
         """
         Get the covariance matrix of the emulator error.
         """

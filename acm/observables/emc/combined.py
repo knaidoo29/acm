@@ -159,8 +159,8 @@ class CombinedObservable:
         """
         return np.concatenate([obs.get_model_residuals(select_mocks) for obs in self.observables], axis=1)
 
-    def get_emulator_error_matrix(self, select_mocks=None, diagonalize=True,
-        method: ['median', 'std'] = 'median', block_diagonal=False, data_is_diffsky=False,
+    def get_emulator_error_matrix(self, select_mocks=None, diagonalize=False,
+        method: ['median', 'std'] = 'std', block_diagonal=True, data_is_diffsky=False,
         nsigma=5):
         """
         Get the covariance matrix of the emulator error.
